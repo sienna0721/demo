@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小紅帽的森林外送任務｜英文量詞 Quantifiers</title>
+<style>
+  /* ====== 主題色與可替換素材（換圖只要改這裡） ====== */
+  :root {
+    --ink: #2b1d2f;
+    --red: #c8323c;
+    --red-dark: #8f1f28;
+    --forest: #2f5d50;
+    --forest-dark: #1d3d34;
+    --gold: #e9b949;
+    --ok: #2e8b57;
+    --bad: #c8323c;
+
+    /* 背景：之後換成 url('bg_home.png') center / cover 之類即可 */
+    --bg-home: url('assets/bg_home.webp') center / cover no-repeat, #8fb8d8;
+    --bg-room: url('assets/bg_room.webp') center / cover no-repeat, #b88bc9;
+    --bg-kitchen: url('assets/bg_kitchen.webp') center / cover no-repeat, #f3cf98;
+    --bg-battle: linear-gradient(rgba(110, 10, 30, 0.5), rgba(40, 0, 15, 0.7)), url('assets/bg_kitchen.webp') center / cover no-repeat, #3a1020;
+    --bg-end: url('assets/bg_end.webp') center / cover no-repeat, #4f8a73;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    background: #1c1420;
+    color: var(--ink);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  #game {
+    position: relative;
+    width: min(100vw, 960px);
+    height: min(100dvh, 720px);
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+    user-select: none;
+  }
+
+  /* ====== 主視覺區 Stage ====== */
+  #stage {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-home);
+    transition: background 0.8s ease;
+  }
+  #stage.scene-home { background: var(--bg-home); }
+  #stage.scene-room { background: var(--bg-room); }
+  #stage.scene-kitchen { background: var(--bg-kitchen); }
+  #stage.scene-battle { background: var(--bg-battle); }
+  #stage.scene-end { background: var(--bg-end); }
+
+  /* Boss 戰畫面劇烈震動 */
+  #game.quake #stage,
+  #game.quake #panel { animation: quake 0.5s ease 2; }
+  @keyframes quake {
+    0%, 100% { translate: 0 0; }
+    15% { translate: -14px 6px; }
+    30% { translate: 12px -8px; }
+    45% { translate: -10px -4px; }
+    60% { translate: 10px 8px; }
+    75% { translate: -6px 4px; }
+    90% { translate: 4px -2px; }
+  }
+
+  /* ====== 上方常駐控制列 ====== */
+  #topbar {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 12;               /* 比開場、結算畫面還高，「回到主頁」隨時按得到 */
+    pointer-events: none;
+  }
+  #topbar > * { pointer-events: auto; }
+  #topbar .spacer { flex: 1; }
+  .top-tag {
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-size: 13px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .top-btn { font: inherit; font-size: 13px; border: 0; cursor: pointer; }
+  .top-btn:hover { background: rgba(0, 0, 0, 0.6); }
+  #home-btn { background: rgba(200, 50, 60, 0.85); }
+  #home-btn:hover { background: var(--red); }
+
+  /* ====== 角色立繪 Sprites（assets/ 裡的去背圖，換圖只要換檔案） ====== */
+  .sprite {
+    position: absolute;
+    bottom: 16%;                 /* 腳稍微藏在對話框後面，視覺小說常見的站位 */
+    transition: transform 0.35s ease, filter 0.35s ease;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+  }
+  /* 文字標籤只留給螢幕閱讀器，畫面上不顯示 */
+  .sprite-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  /* 右側 NPC：同一個 div 依 char-* 切換角色、state-* 切換表情 */
+  #npc { right: 8%; width: 290px; height: 470px; }
+  #npc.char-mom                  { background-image: url('assets/sp_mom.webp'); }
+  #npc.char-grandma.state-normal { background-image: url('assets/sp_granny_normal.webp'); }
+  #npc.char-grandma.state-hint   { background-image: url('assets/sp_granny_normal.webp'); transform: translateY(-8px) rotate(-2deg); }
+  #npc.char-grandma.state-happy  { background-image: url('assets/sp_granny_happy.webp'); transform: translateY(-14px); }
+  #npc.char-grandma.state-angry  { background-image: url('assets/sp_granny_angry.webp'); animation: shake 0.4s; }
+  #npc.char-grandma.state-wolf   { background-image: url('assets/sp_wolf.webp'); transform: scale(1.05); transform-origin: bottom center; }
+  #npc.char-grandma.state-hurt   { background-image: url('assets/sp_wolf_hurt.webp'); transform: translateX(30px) rotate(8deg); transform-origin: bottom center; }
+  /* 結局：大野狼逃走，往右淡出 */
+  #npc.char-grandma.state-gone   { background-image: url('assets/sp_wolf_hurt.webp'); transform: translateX(260px) rotate(15deg); opacity: 0; transition: transform 1s ease-in, opacity 1s ease-in; }
+
+  #red { left: 9%; width: 220px; height: 345px; background-image: url('assets/sp_red.webp'); }
+
+  /* Boss 戰：大野狼逼近（style.translate）要有過場 */
+  #npc { transition: transform 0.35s ease, filter 0.35s ease, background 0.35s ease, translate 0.4s ease; }
+  /* 命中：閃白、變紅、被往後打退 */
+  #npc.hit { animation: hit 0.7s ease; }
+  @keyframes hit {
+    0%   { filter: brightness(3); }
+    25%  { filter: brightness(1.2) sepia(1) saturate(6) hue-rotate(-30deg); translate: 70px -10px; }
+    100% { filter: none; translate: 0 0; }
+  }
+
+  /* Boss 戰：大野狼血條（在 NPC 頭頂上方） */
+  #boss-hp {
+    position: absolute;
+    right: 8%;
+    width: 290px;
+    bottom: calc(16% + 478px);
+    display: none;
+    align-items: center;
+    gap: 6px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    text-shadow: 0 1px 2px #000;
+  }
+  #boss-hp.show { display: flex; }
+  #boss-hp .seg {
+    flex: 1;
+    height: 14px;
+    background: #e23b3b;
+    border: 2px solid #fff;
+    border-radius: 4px;
+    transition: background 0.3s, opacity 0.3s;
+  }
+  #boss-hp .seg.lost { background: #333; opacity: 0.5; }
+  #game.ending #boss-hp { display: none; }
+
+  /* Boss 戰：小紅帽愛心條（在 Red 頭頂上方） */
+  #red-hearts {
+    position: absolute;
+    left: 9%;
+    width: 220px;
+    bottom: calc(16% + 352px);
+    display: none;
+    justify-content: center;
+    gap: 4px;
+    font-size: 26px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
+  }
+  #red-hearts.show { display: flex; }
+  #red-hearts .heart { color: #ff3b5c; transition: transform 0.3s, color 0.3s; }
+  #red-hearts .heart.lost { color: rgba(60, 60, 60, 0.7); transform: scale(0.8); }
+  /* 愛心扣光：最後一次機會，閃爍警告 */
+  #red-hearts.last { animation: last-chance 0.6s ease-in-out infinite alternate; }
+  #red-hearts.last::after { content: '最後機會！'; font-size: 14px; font-weight: 800; color: #fff; align-self: center; margin-left: 6px; }
+  @keyframes last-chance { from { opacity: 1; } to { opacity: 0.45; } }
+  #game.ending #red-hearts { display: none; }
+  #game:has(#panel:not(.hidden)) #red-hearts { visibility: hidden; }
+
+  /* 失敗：小紅帽倒下 */
+  #red.down { transform: rotate(-16deg) translateY(30px) scale(0.95); filter: grayscale(1) brightness(0.6); transition: transform 0.6s ease-in, filter 0.6s; transform-origin: bottom left; }
+  /* 失敗：大野狼衝到小紅帽面前（位移量由程式算） */
+  #npc.lunge { transition: translate 0.45s cubic-bezier(.5,0,.9,.5); }
+
+  /* 倒數計時條（Boss 戰面板） */
+  .timer { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; font-size: 14px; font-weight: 800; color: var(--forest); }
+  .timer-bar { flex: 1; height: 10px; background: #e6e0e8; border-radius: 6px; overflow: hidden; }
+  .timer-fill { height: 100%; background: #4caf7a; border-radius: 6px; transition: width 0.1s linear, background 0.3s; }
+  .timer.warn { color: var(--red); }
+  .timer.warn .timer-fill { background: var(--red); }
+  .timer.warn .timer-num { animation: last-chance 0.4s ease-in-out infinite alternate; }
+  .battle-head .mini-red { font-size: 13px; font-weight: 700; color: #c2185b; white-space: nowrap; }
+
+  /* YOU DIED 畫面 */
+  #you-died {
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(40, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.88) 75%);
+    animation: died-fade 1.2s ease forwards;
+  }
+  #you-died.show { display: flex; }
+  .died-band {
+    width: 100%;
+    padding: 34px 0 26px;
+    text-align: center;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.85) 20%, rgba(0, 0, 0, 0.85) 80%, transparent);
+  }
+  .died-title {
+    font-family: "Times New Roman", "Noto Serif TC", serif;
+    font-size: clamp(48px, 11vw, 96px);
+    letter-spacing: 0.12em;
+    color: #b3121b;
+    text-shadow: 0 0 18px rgba(179, 18, 27, 0.6);
+    animation: died-zoom 2.4s ease-out forwards;
+  }
+  .died-sub { margin-top: 10px; color: #e8c9c9; font-size: 18px; letter-spacing: 2px; }
+  @keyframes died-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes died-zoom { from { transform: scale(1.25); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  /* 推薦影片下方的備用連結 */
+  .video-link { display: inline-block; margin: -4px 0 14px; font-size: 14px; color: var(--forest); font-weight: 700; }
+  /* 作答面板打開時面板裡有迷你血條，頭頂這條先藏起來，免得從面板邊緣露出一角 */
+  #game:has(#panel:not(.hidden)) #boss-hp { visibility: hidden; }
+
+  /* ====== Boss 戰動作特效（道具目前是 CSS 色塊，可換成圖片） ====== */
+  #fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+  .fx { position: absolute; transform: translate(-50%, -50%); }
+  .fx-bag {
+    width: 50px;
+    height: 60px;
+    background: #efe3c6;
+    border: 3px solid #a98d5c;
+    border-radius: 8px 8px 14px 14px;
+    color: #7a5c2a;
+    font: 800 10px/60px sans-serif;
+    text-align: center;
+  }
+  .fx-puff {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.97) 0%, rgba(246, 240, 228, 0.85) 42%, rgba(255, 255, 255, 0) 70%);
+  }
+  .fx-shaker {
+    width: 26px;
+    height: 40px;
+    background: #fff;
+    border: 2px solid #9a9a9a;
+    border-top: 9px solid #b9b9b9;
+    border-radius: 6px 6px 4px 4px;
+  }
+  .fx-grain { width: 6px; height: 6px; background: #fff; border-radius: 1px; box-shadow: 0 0 5px rgba(255, 255, 255, 0.95); }
+  .fx-plate {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0 44%, #dbe8ee 45% 58%, #fff 59%);
+    border: 5px solid #6fa7c2;
+  }
+  .fx-shard { width: 16px; height: 10px; background: #fff; border: 2px solid #6fa7c2; clip-path: polygon(0 0, 100% 30%, 60% 100%); }
+  .fx-flash {
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, rgba(255, 228, 120, 0.9) 30%, rgba(255, 120, 60, 0) 70%);
+  }
+  .fx-word {
+    font-size: 44px;
+    font-weight: 900;
+    color: #fff;
+    white-space: nowrap;
+    -webkit-text-stroke: 2px var(--red-dark);
+    text-shadow: 0 4px 0 var(--red-dark);
+  }
+
+  /* Boss 戰面板標頭：第幾招與迷你血條 */
+  .battle-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .battle-head .panel-title { margin: 0; }
+  .mini-hp { font-size: 13px; font-weight: 700; color: var(--red-dark); white-space: nowrap; }
+  .mini-seg { display: inline-block; width: 22px; height: 10px; margin-left: 3px; background: #e23b3b; border-radius: 3px; vertical-align: middle; }
+  .mini-seg.lost { background: #ccc; }
+
+  .sprite.dim { filter: brightness(0.6) saturate(0.7); }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  /* ====== 互動面板 Interactive Panel ======
+     作答送出後立刻 display:none，下一個作答節點才再出現 */
+  #panel {
+    position: absolute;
+    left: 50%;
+    top: 54px;
+    transform: translateX(-50%);
+    width: min(92%, 680px);
+    background: rgba(255, 255, 255, 0.97);
+    border: 3px solid var(--forest);
+    border-radius: 14px;
+    padding: 16px 20px 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    z-index: 5;
+    animation: panel-in 0.3s ease;
+  }
+  #panel.hidden { display: none; }
+  #panel.battle { border-color: var(--red); box-shadow: 0 0 0 4px rgba(200, 50, 60, 0.35), 0 10px 30px rgba(0, 0, 0, 0.5); }
+  #panel.battle .panel-title { color: var(--red); }
+  @keyframes panel-in {
+    from { opacity: 0; transform: translate(-50%, -16px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  .panel-title { font-size: 14px; color: var(--forest); font-weight: 700; margin-bottom: 8px; }
+  .who { font-size: 14px; color: #7a6a7d; margin-bottom: 2px; }
+
+  .q-line {
+    font-family: "Segoe UI", "Noto Sans TC", sans-serif;
+    font-size: 21px;
+    line-height: 2.1;
+    margin: 2px 0;
+    padding: 2px 10px;
+    border-radius: 8px;
+  }
+  .q-line.active { background: #fff3d1; outline: 2px dashed var(--gold); }
+  .q-line.done { color: var(--ok); }
+
+  .blank {
+    display: inline-block;
+    min-width: 120px;
+    border-bottom: 3px solid var(--ink);
+    text-align: center;
+    font-weight: 700;
+    color: var(--forest);
+  }
+
+  .slot { display: inline-flex; flex-direction: column; align-items: center; vertical-align: bottom; line-height: 1.2; }
+  .letters { font-size: 14px; color: var(--red); letter-spacing: 2px; font-weight: 700; }
+  .word-input {
+    font: inherit;
+    font-size: 20px;
+    width: 124px;
+    padding: 2px 8px;
+    border: none;
+    border-bottom: 3px solid var(--ink);
+    background: #fffbea;
+    text-align: center;
+    color: var(--ink);
+    outline: none;
+    border-radius: 4px 4px 0 0;
+  }
+  .word-input:focus { background: #fff0b3; }
+  .word-input.ok { border-color: var(--ok); color: var(--ok); background: #e6f6ec; }
+  .word-input.bad { border-color: var(--bad); }
+  .zh-tag { font-size: 15px; color: #7a6a7d; }
+
+  .choice-row { display: flex; gap: 14px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+
+  .btn {
+    font: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    padding: 12px 26px;
+    border-radius: 10px;
+    border: 3px solid var(--red-dark);
+    background: var(--red);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--red-dark);
+    transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
+  }
+  .btn:hover { background: #d9434d; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--red-dark); }
+  .btn.alt { background: var(--forest); border-color: var(--forest-dark); box-shadow: 0 4px 0 var(--forest-dark); }
+  .btn.alt:hover { background: #3b7364; }
+  .btn.attack { font-size: 24px; padding: 12px 40px; letter-spacing: 1px; }
+
+  /* ====== 對話框 Dialogue Box ====== */
+  #dialogue {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    min-height: 25%;
+    background: rgba(28, 18, 34, 0.9);
+    border: 3px solid var(--gold);
+    border-radius: 14px;
+    padding: 30px 26px 22px;
+    color: #fff;
+    cursor: pointer;
+    z-index: 4;
+  }
+  #speaker {
+    position: absolute;
+    top: -20px;
+    left: 22px;
+    padding: 4px 18px;
+    background: var(--red);
+    border: 3px solid var(--gold);
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 17px;
+  }
+  #speaker.npc { background: #55606e; }
+  #speaker.mom { background: #3f7d5b; }
+  #speaker.tutor { background: #2f6fa8; }
+  #speaker.narr { background: #4a3d52; }
+
+  #text { font-size: 21px; line-height: 1.65; min-height: 2em; white-space: pre-wrap; }
+  #sub { margin-top: 6px; font-size: 16px; color: #f1d9a0; min-height: 1.2em; }
+  /* 課本單字粗體 */
+  #text strong { color: #ffd76a; font-weight: 800; }
+  #sub strong { color: #fff; }
+
+  #next-arrow {
+    position: absolute;
+    right: 20px;
+    bottom: 12px;
+    color: var(--gold);
+    font-size: 18px;
+    opacity: 0;
+    animation: bob 0.9s infinite;
+  }
+  #next-arrow.show { opacity: 1; }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
+  }
+
+  /* 結算時隱藏對話框、立繪與面板 */
+  #game.ending #dialogue,
+  #game.ending .sprite,
+  #game.ending #panel { display: none; }
+
+  /* ====== 開場與結算畫面 ====== */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10;
+    padding: 56px 24px 24px;
+    overflow-y: auto;
+  }
+  .overlay.show { display: flex; }
+
+  #title-screen {
+    background: radial-gradient(circle at 50% 35%, #a33a44 0%, #5a1d2a 60%, #2a0f18 100%);
+    color: #fff;
+  }
+  #title-screen h1 { font-size: clamp(30px, 6vw, 52px); letter-spacing: 3px; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35); }
+  #title-screen .en { margin: 8px 0 26px; color: var(--gold); font-size: 18px; letter-spacing: 2px; }
+  #title-screen p.desc { max-width: 520px; line-height: 1.8; margin-bottom: 28px; color: #f5dfe2; }
+  #title-screen .note { margin-top: 14px; font-size: 13px; color: #d9b6bb; }
+
+  #result-screen { background: rgba(20, 30, 26, 0.55); color: #fff; justify-content: flex-start; }
+  .result-card {
+    width: min(100%, 640px);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 16px;
+    border: 4px solid var(--gold);
+    padding: 22px 24px 24px;
+    margin: auto 0;
+  }
+  .result-card h2 { color: var(--red); font-size: 28px; margin-bottom: 6px; }
+  .badge {
+    display: inline-block;
+    margin: 10px 0;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .badge small { display: block; font-size: 14px; font-weight: 600; opacity: 0.8; }
+  .badge.legend { background: linear-gradient(135deg, #f7d774, #e9a93a); }
+  .badge.agent  { background: #f3d36b; }
+  .badge.novice { background: #e6c3a0; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 14px; }
+  .stats div { background: #f3eef5; border-radius: 8px; padding: 8px 4px; font-size: 13px; }
+  .stats b { display: block; font-size: 19px; color: var(--forest); }
+  .review {
+    text-align: left;
+    background: #eef6f2;
+    border: 1px solid #b9d6c8;
+    padding: 10px 14px;
+    border-radius: 8px;
+    line-height: 1.8;
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+  .advice { font-size: 18px; font-weight: 700; color: var(--red-dark); margin: 4px 0 10px; }
+  .rec-title { font-size: 16px; color: var(--forest); text-align: left; margin-bottom: 8px; }
+  .rec-note { font-size: 15px; margin-bottom: 12px; }
+  .video-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #222;
+    margin-bottom: 14px;
+  }
+  .video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .unlock-btn {
+    display: block;
+    width: 100%;
+    font-size: 22px;
+    padding: 16px;
+    background: var(--gold);
+    color: var(--ink);
+    border-color: #b98a1f;
+    box-shadow: 0 5px 0 #b98a1f;
+    margin-bottom: 12px;
+    animation: glow 1.6s ease-in-out infinite;
+  }
+  .unlock-btn:hover { background: #f2c85e; }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 5px 0 #b98a1f, 0 0 0 0 rgba(233, 185, 73, 0.6); }
+    50% { box-shadow: 0 5px 0 #b98a1f, 0 0 0 10px rgba(233, 185, 73, 0); }
+  }
+  /* 小遊戲佔位區：之後擴充「大野狼的單字打字機」就放在這個 div 裡 */
+  #minigame {
+    display: none;
+    padding: 30px 16px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    background: #2b1d2f;
+    color: #f1d9a0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  #minigame.show { display: block; }
+
+  @media (max-width: 600px) {
+    #scene-label, #info-err { display: none; }
+    .sprite { bottom: 27%; }
+    #npc { width: 175px; height: 285px; right: 4%; }
+    #red { width: 130px; height: 205px; left: 4%; }
+    #boss-hp { width: 175px; right: 4%; bottom: calc(27% + 292px); }
+    #red-hearts { width: 130px; left: 4%; bottom: calc(27% + 210px); font-size: 20px; }
+    .fx-word { font-size: 32px; }
+    .q-line { font-size: 16px; line-height: 2; }
+    .word-input { width: 92px; font-size: 16px; }
+    .btn { font-size: 17px; padding: 10px 18px; }
+    #text { font-size: 18px; }
+    #dialogue { padding: 26px 18px 20px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+
+  <!-- 主視覺區：背景 + 角色立繪 -->
+  <div id="stage" class="scene-home">
+    <!-- Red（小紅帽）立繪佔位 -->
+    <div id="red" class="sprite dim"><span class="sprite-label">Red 小紅帽</span></div>
+
+    <!-- NPC 立繪佔位：Mom / 戴口罩的大野狼奶奶共用這個 div -->
+    <div id="npc" class="sprite char-mom state-normal">
+      <span id="npc-label" class="sprite-label">Mom 媽媽</span>
+    </div>
+
+    <!-- Boss 戰：大野狼血條（3 格） -->
+    <div id="boss-hp"><span>HP</span><span class="seg"></span><span class="seg"></span><span class="seg"></span></div>
+
+    <!-- Boss 戰：小紅帽愛心條 -->
+    <div id="red-hearts"></div>
+  </div>
+
+  <!-- Boss 戰動作特效圖層 -->
+  <div id="fx"></div>
+
+  <!-- 上方常駐控制列 -->
+  <div id="topbar">
+    <span id="scene-label" class="top-tag">場景：Red 的家</span>
+    <span class="spacer"></span>
+    <span id="info-stage" class="top-tag">準備中</span>
+    <span id="info-err" class="top-tag">答錯 0 次</span>
+    <button id="mute-btn" class="top-tag top-btn" type="button">🔊 語音開</button>
+    <button id="home-btn" class="top-tag top-btn" type="button">🏠 回到主頁 (Home)</button>
+  </div>
+
+  <!-- 互動面板：只在需要作答時出現 -->
+  <div id="panel" class="hidden"></div>
+
+  <!-- 對話框 -->
+  <div id="dialogue">
+    <div id="speaker" class="narr">旁白</div>
+    <div id="text"></div>
+    <div id="sub"></div>
+    <div id="next-arrow">▼</div>
+  </div>
+
+  <!-- 開場畫面 -->
+  <div id="title-screen" class="overlay show">
+    <h1>小紅帽的森林外送任務</h1>
+    <div class="en">Red's Delivery Mission · Unit 4</div>
+    <p class="desc">奶奶生病了，Red 要幫她送食物。<br>可是……這個戴口罩的奶奶，要求好像越來越多？<br>用正確的英文量詞闖過五個關卡，最後打倒大野狼吧！</p>
+    <button class="btn" id="start-btn" type="button">Start Game (開啟音效)</button>
+    <div class="note">建議戴耳機或打開喇叭，每個角色都有自己的聲音喔</div>
+  </div>
+
+  <!-- Boss 戰失敗畫面 -->
+  <div id="you-died">
+    <div class="died-band">
+      <div class="died-title">YOU DIED</div>
+      <div class="died-sub" id="died-sub"></div>
+    </div>
+  </div>
+
+  <!-- 結算畫面 -->
+  <div id="result-screen" class="overlay"></div>
+</div>
+
+<script>
+/* =========================================================
+ * 〇、可調整的設定
+ * ========================================================= */
+
+// 均一平台教學影片：貼上 YouTube 嵌入網址，例如 'https://www.youtube.com/embed/影片ID'
+// 結算時依錯最多的類型推播；留空字串時顯示佔位框
+const JUNYI_VIDEO_PLURAL_URL = 'https://www.junyiacademy.org/video/IcFWi-do0Lw?parent-topic-id=educloudjun-e1';           // 名詞複數與容器量詞規則
+const JUNYI_VIDEO_UNCOUNTABLE_URL = 'https://www.junyiacademy.org/video/6lToU6Hnzx4?parent-topic-id=grammar-lexicalunit-1'; // 可數與不可數名詞判斷
+
+// 均一的網頁不能直接嵌進 iframe，但網址裡那 11 碼就是均一官方頻道的 YouTube 影片 ID，
+// 所以抽出 ID 改用 YouTube 嵌入播放；均一原網址留給下方的「到均一平台觀看」按鈕
+function toEmbedUrl(url) {
+  const m = url.match(/(?:video\/|v=|embed\/|youtu\.be\/)([\w-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : url;
+}
+
+// Boss 戰：限時與愛心
+const BATTLE_TIME_LIMIT = 45;   // 秒；只在作答面板打開時倒數，動畫與提示播放時暫停
+const RED_MAX_HEARTS = 3;       // 小紅帽的愛心：每答錯扣 1 顆，扣光後再答錯（第 4 次）就失敗
+
+// Boss 戰音樂：把音樂檔放在 index.html 同一個資料夾，檔名改成這裡寫的名字即可（mp3 / ogg / m4a 都行）
+// 也可以填完整網址；留空字串就不播音樂
+const BATTLE_MUSIC_URL = 'battle.mp3';
+const BATTLE_MUSIC_VOLUME = 0.35;   // 0～1，太大聲會蓋過角色語音
+
+// 音效總開關（右上角按鈕切換，語音與音樂一起開關）
+let soundOn = true;
+
+// 錯誤數據追蹤：每按一次送出／選項，答錯就依錯誤類型 +1
+//   plural      忘記加 s（含 a 後面多加 s、glass 的 es）
+//   uncountable 可數／不可數判斷錯（How much / How many）
+//   spelling    拼字錯誤、亂碼、留白
+//   synonym     用錯量詞（課本裡別的容器、piece、Boss 戰用錯招式）
+let errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
+const errorTotal = () => Object.values(errorStats).reduce((a, b) => a + b, 0);
+
+/* =========================================================
+ * 一、語音模組（Web Speech API：window.speechSynthesis）
+ *
+ * 角色聲線分離：
+ *   Red、Mom → 女聲，pitch 1.2
+ *   Grandma（大野狼）→ 男聲或粗獷的聲音，pitch 0.5、rate 0.9
+ *   AI 家教 → 中文聲音（提示是中文）
+ *   旁白 → 依文字語言決定
+ *
+ * 跨瀏覽器要注意的地方：
+ *   1. 瀏覽器禁止自動播放：第一次發聲必須在使用者點擊之內，
+ *      所以「Start Game」按鈕裡先唸一段空字串解鎖（iOS Safari 尤其需要）。
+ *   2. 語音清單是非同步載入的：一開始 getVoices() 常是空陣列，
+ *      要等 onvoiceschanged 觸發再抓一次，並重新幫每個角色挑聲音。
+ *   3. Android 的語言代碼是 en_US（底線），桌機是 en-US，比對前要統一。
+ *   4. 找不到符合條件的聲音時，只設定 lang，交給系統挑，pitch 照樣套用。
+ * ========================================================= */
+
+// 女聲關鍵字（Windows: Zira/Aria/Jenny；macOS/iOS: Samantha/Karen…；Chrome: Google US English）
+const FEMALE_HINTS = ['female', 'samantha', 'zira', 'google us english', 'aria', 'jenny', 'karen',
+  'victoria', 'susan', 'tessa', 'moira', 'fiona', 'allison', 'ava', 'serena', 'libby', 'sonia', 'michelle', 'emma', 'hazel'];
+// 男聲關鍵字（Windows: David/Mark/Guy；macOS: Daniel/Fred/Alex；Chrome: Google UK English Male）
+const MALE_HINTS = ['david', 'mark', 'guy', 'daniel', 'fred', 'alex', 'george', 'ryan', 'christopher', 'eric', 'james', 'tom', 'rishi'];
+
+// 每個角色的聲音設定
+const VOICE_PROFILE = {
+  red:     { lang: 'en-US', gender: 'female', pitch: 1.2, rate: 0.95 },
+  mom:     { lang: 'en-US', gender: 'female', pitch: 1.2, rate: 0.95 },
+  grandma: { lang: 'en-US', gender: 'male',   pitch: 0.5, rate: 0.9 },
+  narr:    { lang: 'en-US', gender: null,     pitch: 1.0, rate: 0.95 },
+  tutor:   { lang: 'zh-TW', gender: null,     pitch: 1.0, rate: 1.05 }
+};
+
+const speech = {
+  supported: 'speechSynthesis' in window,
+  enabled: false,
+  voices: [],
+  cache: {},                     // 角色 → 已挑好的 voice
+
+  norm(v) { return v.lang.replace('_', '-').toLowerCase(); },
+
+  isFemale(v) {
+    const n = v.name.toLowerCase();
+    return FEMALE_HINTS.some(k => n.includes(k));
+  },
+  isMale(v) {
+    const n = v.name.toLowerCase();
+    // 'female' 也含有 'male'，所以要用單字邊界判斷
+    return /\bmale\b/.test(n) || MALE_HINTS.some(k => n.includes(k));
+  },
+
+  loadVoices() {
+    if (!this.supported) return;
+    this.voices = window.speechSynthesis.getVoices();
+    this.cache = {};             // 清單變了，角色要重新挑聲音
+  },
+
+  // 中文聲音：台灣口音優先，其次香港、中國
+  pickChinese() {
+    for (const code of ['zh-tw', 'zh-hk', 'zh-cn']) {
+      const v = this.voices.find(x => this.norm(x) === code);
+      if (v) return v;
+    }
+    return this.voices.find(x => this.norm(x).startsWith('zh')) || null;
+  },
+
+  // 英文聲音：先找美式、再找任何英文；依性別過濾
+  pickEnglish(gender) {
+    const en = this.voices.filter(v => this.norm(v).startsWith('en'));
+    const us = en.filter(v => this.norm(v) === 'en-us');
+    const pools = [us, en];
+    for (const pool of pools) {
+      let v = null;
+      if (gender === 'female') v = pool.find(x => this.isFemale(x));
+      if (gender === 'male') v = pool.find(x => this.isMale(x) && !this.isFemale(x));
+      if (v) return v;
+    }
+    // 找不到指定性別：女聲退而求其次挑「不是男聲」的，男聲挑「不是女聲」的
+    if (gender === 'female') return us.find(x => !this.isMale(x)) || en[0] || null;
+    if (gender === 'male') return us.find(x => !this.isFemale(x)) || en[0] || null;
+    return us[0] || en[0] || null;
+  },
+
+  voiceFor(character, lang) {
+    const key = character + '|' + lang;
+    if (!(key in this.cache)) {
+      const profile = VOICE_PROFILE[character] || VOICE_PROFILE.narr;
+      this.cache[key] = lang.startsWith('zh') ? this.pickChinese() : this.pickEnglish(profile.gender);
+    }
+    return this.cache[key];
+  },
+
+  // 在使用者點擊時呼叫：解鎖自動播放限制並載入聲音
+  unlock() {
+    if (!this.supported) return;
+    this.enabled = true;
+    this.loadVoices();
+    window.speechSynthesis.onvoiceschanged = () => this.loadVoices();
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+  },
+
+  stop() {
+    if (this.supported) window.speechSynthesis.cancel();
+  }
+};
+
+/**
+ * 全域語音函式：依角色決定聲音、音調、語速
+ * @param {string} text      要唸的文字
+ * @param {string} character red / mom / grandma / tutor / narr
+ */
+function speakText(text, character = 'narr') {
+  if (!speech.supported || !speech.enabled || !text) return;
+  // 括號與底線不唸（例如旁白的 (Red goes to the kitchen.)）
+  const clean = text.replace(/[()（）_]/g, ' ').trim();
+  if (!clean) return;
+
+  const profile = VOICE_PROFILE[character] || VOICE_PROFILE.narr;
+  // 文字含中文就一定用中文聲音（例如家教提示、中文旁白）
+  const isZh = /[一-鿿]/.test(clean);
+  const lang = isZh ? 'zh-TW' : profile.lang;
+
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = lang;
+  const voice = speech.voiceFor(character, lang);
+  if (voice) u.voice = voice;
+  // 角色的音調只套在英文台詞；中文一律用家教的設定，避免中文被壓成怪聲聽不清楚
+  const p = isZh ? VOICE_PROFILE.tutor : profile;
+  u.pitch = p.pitch;
+  u.rate = p.rate;
+
+  // 先停掉上一句，避免點太快時語音排隊、跟畫面對不上
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+/* =========================================================
+ * 一之二、戰鬥音樂
+ *   Boss 現身時從頭循環播放，打倒大野狼後淡出，回到主頁時停止。
+ *   iOS Safari 要求聲音必須「曾經在點擊裡播過」才能之後自動播，
+ *   所以在 Start Game 按鈕裡先靜音播一下再暫停（prime）。
+ *   音樂檔不存在時只在主控台留訊息，遊戲照常進行。
+ * ========================================================= */
+const music = {
+  el: null,
+  fadeTimer: null,
+
+  ensure() {
+    if (!BATTLE_MUSIC_URL) return null;
+    if (!this.el) {
+      this.el = new Audio(BATTLE_MUSIC_URL);
+      this.el.loop = true;
+      this.el.preload = 'auto';
+      this.el.addEventListener('error', () => console.info(`找不到戰鬥音樂檔：${BATTLE_MUSIC_URL}（不影響遊戲）`));
+    }
+    return this.el;
+  },
+
+  // 在使用者點擊時呼叫，解鎖之後的自動播放
+  prime() {
+    const el = this.ensure();
+    if (!el) return;
+    el.muted = true;
+    el.play().then(() => { el.pause(); el.currentTime = 0; el.muted = !soundOn; }).catch(() => { el.muted = !soundOn; });
+  },
+
+  play() {
+    const el = this.ensure();
+    if (!el) return;
+    clearInterval(this.fadeTimer);
+    el.muted = !soundOn;
+    el.volume = BATTLE_MUSIC_VOLUME;
+    el.currentTime = 0;
+    el.play().catch(() => {});
+  },
+
+  // 音量逐步降到 0 後暫停
+  fadeOut(ms = 2500) {
+    const el = this.el;
+    if (!el || el.paused) return;
+    clearInterval(this.fadeTimer);
+    const step = el.volume / (ms / 100);
+    this.fadeTimer = setInterval(() => {
+      el.volume = Math.max(0, el.volume - step);
+      if (el.volume <= 0) { clearInterval(this.fadeTimer); el.pause(); }
+    }, 100);
+  },
+
+  stop() {
+    clearInterval(this.fadeTimer);
+    if (this.el) { this.el.pause(); this.el.currentTime = 0; }
+  },
+
+  setMuted(m) {
+    if (this.el) this.el.muted = m;
+  }
+};
+
+/* =========================================================
+ * 一之三、正確音效
+ *   用 Web Audio 合成「叮咚」兩個音，不需要音檔。
+ *   AudioContext 一樣要在使用者點擊時建立（Start Game 按鈕裡呼叫 unlock）。
+ * ========================================================= */
+const sfx = {
+  ctx: null,
+
+  unlock() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!this.ctx) this.ctx = new AC();
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+
+  // 單一個音：頻率、開始時間、長度
+  tone(freq, start, dur) {
+    const c = this.ctx;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, c.currentTime + start);
+    gain.gain.exponentialRampToValueAtTime(0.25, c.currentTime + start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + start + dur);
+    osc.connect(gain).connect(c.destination);
+    osc.start(c.currentTime + start);
+    osc.stop(c.currentTime + start + dur + 0.05);
+  },
+
+  correct() {
+    if (!soundOn || !this.ctx) return;
+    this.tone(880, 0, 0.18);      // A5
+    this.tone(1318.5, 0.12, 0.32); // E6
+  }
+};
+
+/* =========================================================
+ * 二、課本單字粗體
+ * 對白與提示中出現的 Unit 4 單字，一律自動包 <strong>
+ * ========================================================= */
+const VOCAB = [
+  // 片語（長的放前面，避免被拆開比對）
+  'fruit salad', 'milk shake', 'milkshake', 'a little', 'all right', 'back off', 'turn into', 'Big Bad Wolf',
+  // 食物與物品
+  'water', 'popcorn', 'tea', 'pizzas?', 'candy', 'juice', 'bread', 'cheese', 'flour', 'salt', 'plates?',
+  'sugar', 'pies?', 'meals?', 'snacks?', 'masks?', 'toast', 'things?', 'kids?', 'something',
+  // 容器量詞（can 只算「罐」：cans 或 can of，助動詞 Can you 不算）
+  'glass(?:es)?', 'bottles?', 'tubs?', 'bowls?', 'cups?', 'slices?', 'bags?', 'cans', 'can(?= of)',
+  // 其他課本單字
+  'sick', 'because', 'need', 'still', 'yummy', 'easy', 'enjoy', 'each', 'wear(?:ing)?', 'why', 'get'
+];
+const VOCAB_RE = new RegExp(`\\b(?:${VOCAB.join('|')})\\b`, 'gi');
+
+// 把一句話切成 [{ t: 文字, b: 是否粗體 }]，打字機逐字顯示時才不會把標籤打一半
+function toSegments(text) {
+  const segs = [];
+  let last = 0;
+  for (const m of text.matchAll(VOCAB_RE)) {
+    if (m.index > last) segs.push({ t: text.slice(last, m.index), b: false });
+    segs.push({ t: m[0], b: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) segs.push({ t: text.slice(last), b: false });
+  return segs;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 只顯示前 n 個字，粗體部分包 <strong>
+function renderSegments(segs, n = Infinity) {
+  let out = '';
+  let left = n;
+  for (const s of segs) {
+    if (left <= 0) break;
+    const part = s.t.slice(0, left);
+    left -= part.length;
+    out += s.b ? `<strong>${escapeHtml(part)}</strong>` : escapeHtml(part);
+  }
+  return out;
+}
+
+/* =========================================================
+ * 三、資料層：關卡、劇情、提示文字（只放資料，不碰 DOM）
+ * ========================================================= */
+
+// 課本 Unit 4 的容器量詞（用來辨認「拼對了但用錯量詞」）
+const TEXTBOOK_UNITS = ['bottle', 'tub', 'bowl', 'glass', 'cup', 'slice', 'bag', 'can', 'plate'];
+const UNIT_ZH = { bottle: '瓶', tub: '桶', bowl: '碗', glass: '玻璃杯', cup: '杯', slice: '片', bag: '袋', can: '罐', plate: '盤子' };
+
+/*
+ * 追加提問題庫：忘記加 s 時，動態 unshift() 插到佇列最前面，答對才回到主線原題
+ * 每題都是一個小關卡（type: 'fill'），main: false 代表不算主線進度
+ */
+const REMEDIAL = {
+  // 關卡 3（bowls / cups）漏 s → 換成披薩再練一次
+  slices: {
+    title: '追加提問｜再確認一次複數',
+    type: 'fill',
+    who: 'AI 家教問：',
+    sentence: '那如果是三片披薩呢？ three {r_slices} (片) of pizza?',
+    fields: [{ id: 'r_slices', answer: 'slices', singular: 'slice', zh: '片', food: 'pizza', plural: true }],
+    hints: { spelling: '再檢查一下拼字，『片』是 slice，並注意要不要加複數 s 喔！' },
+    intro: [{ speaker: 'tutor', text: '先停一下！我們用一題小練習，確認你真的會了。' }],
+    done: [{ speaker: 'tutor', text: '答對了！數量大於一，量詞就要加 s。現在回到 Grandma 的題目吧！' }]
+  },
+  // 關卡 4 披薩漏 s → 換成碗再練一次
+  bowls: {
+    title: '追加提問｜再確認一次複數',
+    type: 'fill',
+    who: 'AI 家教問：',
+    sentence: '那如果是兩碗水果沙拉呢？ two {r_bowls} (碗) of fruit salad?',
+    fields: [{ id: 'r_bowls', answer: 'bowls', singular: 'bowl', zh: '碗', food: 'fruit salad', plural: true }],
+    hints: { spelling: '再檢查一下拼字，『碗』是 bowl，並注意要不要加複數 s 喔！' },
+    intro: [{ speaker: 'tutor', text: '先停一下！我們用一題小練習，確認你真的會了。' }],
+    done: [{ speaker: 'tutor', text: '答對了！數量大於一，量詞就要加 s。現在回到 Grandma 的題目吧！' }]
+  },
+  // 關卡 4 glass 漏 es → 換成奶昔再練一次 es 規則
+  glasses: {
+    title: '追加提問｜字尾是 s 的複數',
+    type: 'fill',
+    who: 'AI 家教問：',
+    sentence: '那如果是三杯奶昔呢？ three {r_glasses} (玻璃杯) of milk shake?',
+    fields: [{ id: 'r_glasses', answer: 'glasses', singular: 'glass', zh: '玻璃杯', food: 'milk shake', plural: true }],
+    hints: { spelling: '再檢查一下拼字，『玻璃杯』是 glass，字尾是 s 的字複數要加 es 喔！' },
+    intro: [{ speaker: 'tutor', text: '先停一下！glass 的複數比較特別，我們再練一題。' }],
+    done: [{ speaker: 'tutor', text: '答對了！字尾是 s 的字，複數要加 es。現在回到 Grandma 的題目吧！' }]
+  }
+};
+
+/*
+ * 每一關的設定
+ *   type: 'fill'   文字輸入（sentence 裡的 {欄位id} 會被換成輸入框；可以是多行陣列）
+ *         'choice' 按鈕選擇（questions 依序作答）
+ *         'battle' Boss 戰（文字輸入，面板變紅色、按鈕是 Attack）
+ *   intro: 進關前的劇情；done: 全部答對後的劇情
+ *   對白欄位：speaker = red / npc / mom / tutor / narr
+ *             char（mom / grandma）、state（立繪狀態）、scene（背景）、quake（畫面震動）
+ */
+const STAGES = [
+  // ---------- 關卡 1：行前準備（字母提示填空） ----------
+  {
+    title: '關卡 1｜行前準備：看字母提示，填出量詞',
+    type: 'fill',
+    who: 'Mom 說：',
+    sentence: 'I prepared a {bread} (片) of bread and a {water} (瓶) of water for Grandma.',
+    fields: [
+      { id: 'bread', answer: 'slice', singular: 'slice', zh: '片', food: 'bread', letters: 's _ _ _ e', plural: false },
+      { id: 'water', answer: 'bottle', singular: 'bottle', zh: '瓶', food: 'water', letters: 'b _ _ _ _ e', plural: false }
+    ],
+    hints: { spelling: '媽媽提醒你，『片』是 s 開頭，『瓶』是 b 開頭的單字喔，再確認一下拼法！' },
+    intro: [
+      { speaker: 'narr', text: '(Red is at home.)', sub: 'Red 在家裡，媽媽正在整理籃子。', scene: 'home', char: 'mom', state: 'normal' },
+      { speaker: 'mom', text: 'Grandma is sick, so we need to prepare a yummy snack for her.', sub: '奶奶生病了，所以我們要幫她準備好吃的點心。' },
+      { speaker: 'red', text: 'Of course, Mom!', sub: '沒問題，媽媽！' },
+      { speaker: 'mom', text: 'Look in the basket.', sub: '看看籃子裡有什麼。' },
+      { speaker: 'tutor', text: '幫 Red 確認籃子裡的東西！看紅色的字母提示，把量詞完整拼出來。' }
+    ],
+    done: [
+      { speaker: 'mom', text: 'Good! A slice of bread and a bottle of water.', sub: '很好！一片麵包和一瓶水。' },
+      { speaker: 'red', text: 'All right. Bye, Mom!', sub: '好的，媽媽再見！' }
+    ]
+  },
+
+  // ---------- 關卡 2：可數與不可數（按鈕選擇） ----------
+  {
+    title: '關卡 2｜可數還是不可數？選出正確的問句開頭',
+    type: 'choice',
+    who: 'Red 問：',
+    questions: [
+      {
+        id: 'popcorn', after: ' popcorn do you want?', answer: 'How much',
+        tree: [
+          '等等！爆米花 (popcorn) 不可數，但糖果裝在袋子 (bags) 裡，字尾有 s 是可以數的喔！',
+          '想想看：我們會說 one popcorn、two popcorns 嗎？不可數的東西，問「多少」要用哪一個？'
+        ],
+        okLines: [{ speaker: 'npc', state: 'happy', text: 'Lots of popcorn, please!', sub: '要很多很多爆米花！' }]
+      },
+      {
+        id: 'candy', after: ' bags of candy do you need?', answer: 'How many',
+        tree: [
+          '等等！爆米花 (popcorn) 不可數，但糖果裝在袋子 (bags) 裡，字尾有 s 是可以數的喔！',
+          '注意 bags 後面有 s！可以一袋、兩袋數的東西，問句該用哪一個？'
+        ],
+        okLines: [
+          { speaker: 'npc', state: 'happy', text: 'Three bags of candy, please.', sub: '三袋糖果，謝謝。' },
+          { speaker: 'red', text: 'All right.', sub: '好的。' }
+        ]
+      }
+    ],
+    intro: [
+      { speaker: 'narr', text: '(Red is at her grandma\'s house.)', sub: 'Red 來到奶奶家，奶奶戴著口罩躺在床上。', scene: 'room', char: 'grandma', state: 'normal' },
+      { speaker: 'red', text: 'Grandma, why are you wearing a mask?', sub: '奶奶，你為什麼戴著口罩？' },
+      { speaker: 'npc', state: 'normal', text: 'I\'m wearing a mask because I\'m sick.', sub: '因為我生病了，所以戴口罩。' },
+      { speaker: 'npc', state: 'normal', text: 'I\'m still hungry. I want a big meal!', sub: '我還是好餓。我想吃大餐！' },
+      { speaker: 'npc', state: 'normal', text: 'Popcorn and candy first!', sub: '先來爆米花和糖果！' },
+      { speaker: 'tutor', text: 'Red 想問奶奶要多少。先判斷：這個東西能不能一個一個數？' }
+    ],
+    done: [
+      { speaker: 'narr', text: '(Red goes to the kitchen.)', sub: 'Red 走進廚房。', scene: 'kitchen' }
+    ]
+  },
+
+  // ---------- 關卡 3：量詞與複數（文字輸入） ----------
+  {
+    title: '關卡 3｜打出正確的容器量詞',
+    type: 'fill',
+    who: 'Red 確認：',
+    sentence: 'So, you want two {salad} (碗) of fruit salad and three {shake} (杯) of milk shake?',
+    fields: [
+      { id: 'salad', answer: 'bowls', singular: 'bowl', zh: '碗', food: 'fruit salad', plural: true, remedial: 'slices' },
+      { id: 'shake', answer: 'cups', singular: 'cup', zh: '杯', food: 'milk shake', plural: true, remedial: 'slices' }
+    ],
+    hints: {
+      plural: '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
+      synonym: '意思很接近！但 Grandma 想要裝在『碗 (b開頭)』和『杯子 (c開頭)』裡，再試試看！',
+      spelling: '再檢查一下拼字，『碗』是 bowl，『杯』是 cup，並注意要不要加複數 s 喔！'
+    },
+    intro: [
+      { speaker: 'npc', state: 'angry', text: 'Give me a little cheese!', sub: '給我一點起司！' },
+      { speaker: 'npc', state: 'angry', text: 'Fruit salad! Milk shake! I want more!', sub: '（我還要兩碗水果沙拉和三杯奶昔！）' },
+      { speaker: 'tutor', text: '在空格裡打出正確的量詞，再按「送出」。注意前面的數字喔！' }
+    ],
+    done: [
+      { speaker: 'npc', state: 'happy', text: 'Yummy! Two bowls of fruit salad and three cups of milk shake!', sub: '好吃！兩碗水果沙拉和三杯奶昔！' }
+    ]
+  },
+
+  // ---------- 關卡 4：魔王關（容器混淆與複數） ----------
+  {
+    title: '關卡 4｜魔王關：容器別搞混！',
+    type: 'fill',
+    who: 'Red 確認：',
+    sentence: 'Four {pizza} (片) of pizza and two {water} (玻璃杯) of water?',
+    fields: [
+      { id: 'pizza', answer: 'slices', singular: 'slice', zh: '片', food: 'pizza', plural: true, remedial: 'bowls' },
+      { id: 'water', answer: 'glasses', singular: 'glass', zh: '玻璃杯', food: 'water', plural: true, remedial: 'glasses' }
+    ],
+    hints: {
+      plural: '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
+      synonym: '意思很接近！但 Grandma 想要的是『片 (s開頭)』和『玻璃杯 (g開頭)』，再試試看！',
+      spelling: '再檢查一下拼字，『片』是 slice，『玻璃杯』是 glass，並注意要不要加複數 s 喔！'
+    },
+    intro: [
+      { speaker: 'npc', state: 'angry', text: 'I still need more!', sub: '我還要更多！' },
+      { speaker: 'npc', state: 'angry', text: 'Pizza! Water! Pizza and water!', sub: '（我還要四片披薩跟兩玻璃杯的水！）' },
+      { speaker: 'tutor', text: '魔王關！披薩和水的量詞不一樣，還要注意複數喔。' }
+    ],
+    done: [
+      { speaker: 'npc', state: 'happy', text: 'Four slices of pizza and two glasses of water. Yummy!', sub: '四片披薩和兩杯水。好吃！' }
+    ]
+  },
+
+  // ---------- 關卡 5：Boss 戰（階段式攻擊：一招一個單字） ----------
+  {
+    title: '關卡 5｜Boss 戰！',
+    type: 'battle',
+    who: 'Red 大喊：',
+    /*
+     * 每一招一個回合：答對後 Red 喊出整句（shout）並播放該招的動作特效（fx），
+     * 特效命中時大野狼扣一格血，接著播大野狼的反應（react），再進下一招
+     */
+    fields: [
+      {
+        id: 'flour', answer: 'flour', zh: '麵粉', letter: 'f', fx: 'flour',
+        line: 'I throw a bag of {flour} (麵粉) at you!',
+        shout: 'I throw a bag of flour at you!',
+        react: { speaker: 'npc', state: 'hurt', text: 'Ah! Flour!', sub: '大野狼被麵粉嗆得什麼都看不見！' }
+      },
+      {
+        id: 'salt', answer: 'salt', zh: '鹽', letter: 's', fx: 'salt',
+        line: 'And a little {salt} (鹽) in your eyes!',
+        shout: 'And a little salt in your eyes!',
+        react: { speaker: 'npc', state: 'hurt', text: 'No! Not the salt!', sub: '鹽巴撒進眼睛，大野狼痛得哇哇大叫！' }
+      },
+      {
+        id: 'plate', answer: 'plate', zh: '盤子', letter: 'p', fx: 'plate',
+        line: 'Take this heavy {plate} (盤子)!',
+        shout: 'Take this heavy plate!',
+        react: { speaker: 'npc', state: 'hurt', text: 'No, no, no!', sub: '盤子正中大野狼，牠被打飛出去！' }
+      }
+    ],
+    intro: [
+      { speaker: 'red', text: 'Grandma, why do you need so much food?', sub: '奶奶，你為什麼需要這麼多食物？' },
+      { speaker: 'npc', char: 'grandma', state: 'wolf', scene: 'battle', quake: true, music: 'start', hp: 3, text: 'I don\'t want those things. I want a kid like you!', sub: 'Grandma 撕下口罩：我不想吃那些東西，我要吃掉妳這個小孩！' },
+      { speaker: 'red', text: 'Ah, you\'re not my grandma!', sub: '啊，你不是我奶奶！' },
+      { speaker: 'tutor', text: 'Boss 戰！Red 要用手邊的物資反擊。一次一招：打出單字、按下 Attack，把大野狼的血打光！' }
+    ],
+    done: [
+      { speaker: 'red', text: 'Back off, Big Bad Wolf!', sub: '退後，大野狼！', scene: 'end', music: 'fade', hp: null, state: 'gone' },
+      { speaker: 'narr', text: '大野狼被打得落荒而逃，Red 成功保護了自己！' }
+    ]
+  }
+];
+
+/* =========================================================
+ * 四、狀態管理：State Machine
+ *   TITLE  開場畫面
+ *   STORY  播劇情或提示（面板隱藏）
+ *   ANSWER 等待作答（面板顯示）
+ *   RESULT 結算畫面
+ * ========================================================= */
+const STATES = { TITLE: 'TITLE', STORY: 'STORY', ANSWER: 'ANSWER', RESULT: 'RESULT' };
+
+const TRANSITIONS = {
+  TITLE: ['STORY'],
+  STORY: ['STORY', 'ANSWER', 'RESULT', 'TITLE'],
+  ANSWER: ['STORY', 'TITLE'],
+  RESULT: ['TITLE']
+};
+
+/*
+ * 動態佇列（Queue-based State Machine）
+ *   game.queue 裡放「關卡實例」，永遠只玩 queue[0]：
+ *     答對整關 → shift() 移除，進下一關；佇列空了 → 結算
+ *     忘記加 s → unshift() 插入追加提問，答對後 shift() 回到原題
+ *   關卡實例 = { def: 關卡設定, main: 是否主線, introDone: 開場劇情播過沒, st: 作答進度 }
+ *   作答進度放在實例上，所以追加提問插隊回來後，原題已答對的格子還在
+ */
+function makeLevel(def, main) {
+  return {
+    def,
+    main,
+    introDone: false,
+    st: {
+      choiceIndex: 0,      // 按鈕關目前作答到第幾題
+      phase: 0,            // Boss 戰目前第幾招（0 起算）
+      approach: 0,         // Boss 戰大野狼逼近了幾步（攻擊失敗累加、命中歸零）
+      solved: {},          // 已答對的欄位
+      values: {},          // 學生上次輸入的內容（答錯回來時保留，讓他修改）
+      wrong: {}            // 上次答錯的欄位（重開面板時標紅）
+    }
+  };
+}
+
+function freshGame() {
+  return {
+    state: STATES.TITLE,
+    queue: [],             // 關卡佇列
+    remedialUsed: {},      // 已經觸發過追加提問的欄位（同一格只追加一次，避免無限插題）
+    battle: null,          // Boss 戰狀態 { timeLeft, hearts, timer }
+    failed: false,         // Boss 戰失敗（時間到或愛心用完）
+    attempts: {}           // 每一格、每一種錯誤各錯幾次（決定提示追問到第幾層）
+  };
+}
+let game = freshGame();
+
+// 目前這一關（佇列最前面）的設定與作答進度
+const D = () => game.queue[0].def;
+const L = () => game.queue[0].st;
+
+function setState(next) {
+  if (!TRANSITIONS[game.state].includes(next)) {
+    console.warn(`不合法的狀態轉移：${game.state} → ${next}`);
+    return false;
+  }
+  game.state = next;
+  return true;
+}
+
+// 錯誤類型（判斷函式回傳的 type）→ errorStats 的四大類
+const ERROR_CATEGORY = {
+  choice: 'uncountable',
+  plural: 'plural', esRule: 'plural', extraS: 'plural',
+  synonym: 'synonym', swapped: 'synonym', otherUnit: 'synonym', order: 'synonym',
+  typo: 'spelling', empty: 'spelling'
+};
+
+// 答錯一次：依類型累計 errorStats
+function countError(type) {
+  errorStats[ERROR_CATEGORY[type]]++;
+  ui.updateInfo();
+}
+
+function bumpAttempt(key) {
+  game.attempts[key] = (game.attempts[key] || 0) + 1;
+  return game.attempts[key];
+}
+
+// 輸入淨化：轉小寫、去頭尾空白，中間多個空白壓成一個
+function normalize(raw) {
+  return raw.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+/* =========================================================
+ * 五、錯題引導邏輯（Socratic Scaffolding 動態提示樹）
+ *
+ * 原則：
+ *   1. 絕對不直接說出答案
+ *   2. 不只說「錯了」，而是指出錯在哪個概念，再丟一個問題讓學生自己想
+ *   3. 同一格、同一種錯誤連犯，提示往下追問一層（tree 的下一句）
+ * 判斷函式回傳 { ok, type, state, tree }
+ *   type  錯誤類型，用來分開累計次數
+ *   state Grandma 立繪要切換的狀態
+ *   tree  提示樹，第 n 次犯同一種錯顯示第 n 句，到底就停在最後一句
+ * ========================================================= */
+
+/**
+ * 按鈕關（關卡 2）：判斷 How much / How many
+ */
+function judgeChoice(q, choice) {
+  if (choice === q.answer) return { ok: true };
+  // popcorn 選了 How many：爆米花不可數
+  // candy 選了 How much：糖果本身不好數，但這裡數的是 bags（袋子），袋子可以數
+  return { ok: false, type: 'choice', state: 'hint', tree: q.tree };
+}
+
+/**
+ * 文字關（關卡 1、3、4）：判斷單一輸入框
+ * @param {object} stage 目前關卡設定（取本關的拼錯提示、同關的其他欄位）
+ * @param {object} field 這一格的設定
+ * @param {string} raw   學生原始輸入
+ */
+function judgeFill(stage, field, raw) {
+  const input = normalize(raw);
+
+  // 正確
+  if (input === field.answer) return { ok: true };
+
+  // 錯誤類型 0：沒填
+  if (input === '') {
+    return { ok: false, type: 'empty', state: 'hint', tree: [`「${field.zh}」那一格還空著喔！${field.food} 要用哪一個量詞呢？`] };
+  }
+
+  // 錯誤類型 1（關卡 1）：前面是 a（只有一個），卻多加了 s
+  if (!field.plural && (input === field.answer + 's' || input === field.answer + 'es')) {
+    return { ok: false, type: 'extraS', state: 'hint', tree: ['拼得很好！可是你看，前面是 a，代表只有一個，量詞還需要加 s 嗎？'] };
+  }
+
+  // 錯誤類型 2（關卡 4 的 glass）：字尾是 s 的字，複數要加 es
+  // 只說「加 s」會讓學生打出 glasss，所以這裡單獨提醒規則，但不說出完整答案
+  // （要用「單數＋es＝答案」判斷；只看答案結尾是 es 的話，slices 也會被誤判）
+  if (field.plural && field.answer === field.singular + 'es' && (input === field.singular || input === field.singular + 's')) {
+    return {
+      ok: false, type: 'esRule', state: 'hint',
+      tree: [`容器拼對了！數字大於一要變複數，可是 ${field.singular} 的字尾本來就是 s，這種字的複數不是只加 s，而是加什麼呢？`]
+    };
+  }
+
+  // 錯誤類型 3（關卡 3、4）：容器拼對了，但忘記加複數 s → 之後會觸發追加提問
+  if (field.plural && input === field.singular) {
+    return {
+      ok: false, type: 'plural', state: 'hint',
+      tree: [
+        stage.hints?.plural || '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
+        `再看一次句子，前面的數字是幾？${field.singular} 後面要加上什麼才是「很多個」？`
+      ]
+    };
+  }
+
+  // 錯誤類型 4：披薩用了課本以外的同義詞 piece / pieces
+  if (field.food === 'pizza' && (input === 'piece' || input === 'pieces')) {
+    return { ok: false, type: 'synonym', state: 'hint', tree: ['意思很接近！但在這次任務中，披薩的單位要用課本教的『s』開頭的那個單字喔！'] };
+  }
+
+  // 錯誤類型 5：拼對了課本裡「另一個」容器量詞
+  const base = input.endsWith('es') && TEXTBOOK_UNITS.includes(input.slice(0, -2))
+    ? input.slice(0, -2)
+    : input.endsWith('s') ? input.slice(0, -1) : input;
+  if (TEXTBOOK_UNITS.includes(base) && base !== field.singular) {
+    // 5a：跟同一句的另一格放反了
+    if (stage.fields.some(f => f.singular === base)) {
+      return {
+        ok: false, type: 'swapped', state: 'hint',
+        tree: [`「${input}」是課本裡的量詞沒錯，它的意思是「${UNIT_ZH[base]}」。你是不是把兩格放反了？${field.food} 要的是「${field.zh}」喔！`]
+      };
+    }
+    // 5b：用了意思接近但不對的量詞（例如 plates / glasses）→ 不追加提問，原題重答
+    return {
+      ok: false, type: 'otherUnit', state: 'hint',
+      tree: [stage.hints?.synonym
+        || `「${input}」是課本裡的量詞沒錯，可是它的意思是「${UNIT_ZH[base]}」。題目要的是「${field.zh}」，課本裡哪個字是「${field.zh}」呢？`]
+    };
+  }
+
+  // 錯誤類型 6：拼寫錯誤或亂碼 → 使用本關專屬的提示
+  return { ok: false, type: 'typo', state: 'angry', tree: [stage.hints.spelling] };
+}
+
+/**
+ * Boss 戰（關卡 5）：判斷單一攻擊欄位
+ */
+function judgeBattle(stage, field, raw) {
+  const input = normalize(raw);
+  if (input === field.answer) return { ok: true };
+
+  // 沒填：還少一招
+  if (input === '') {
+    return { ok: false, type: 'empty', state: 'wolf', tree: [`還有一招沒填！「${field.zh}」是 ${field.letter} 開頭的單字，快補上！`] };
+  }
+  // 填了別招的答案：招式用錯了
+  const other = stage.fields.find(f => f.answer === input);
+  if (other) {
+    return { ok: false, type: 'order', state: 'wolf', tree: [`「${input}」是「${other.zh}」，可是這一招要用的是「${field.zh}」！看清楚括號裡的中文再出招！`] };
+  }
+  // 拼錯：階段式攻擊一次只出一招，所以只提示這一招的開頭字母
+  return {
+    ok: false, type: 'typo', state: 'wolf',
+    tree: [
+      `攻擊失敗！大野狼逼近了！「${field.zh}」是 ${field.letter} 開頭的單字，趕快再確認一次拼字反擊！`,
+      `大野狼越來越近了！冷靜下來，${field.letter} 開頭、跟「${field.zh}」有關的課本單字，一個字母一個字母拼拼看！`
+    ]
+  };
+}
+
+/* =========================================================
+ * 五之二、Boss 戰動作特效
+ *   每一招一段動畫，用 Web Animations API（element.animate）在 #fx 圖層上播放。
+ *   道具（麵粉袋、鹽罐、盤子）目前是 CSS 畫的色塊，之後可換成圖片。
+ *   play(name, onHit)：播放該招，命中瞬間呼叫 onHit，整段播完後 resolve
+ * ========================================================= */
+const fx = {
+  gen: 0,          // 世代號：clear() 時 +1，舊動畫 await 回來發現世代變了就不再產生東西
+  layer() { return document.getElementById('fx'); },
+
+  // 角色在 #game 座標系裡的「臉部」位置
+  anchor(id) {
+    const g = document.getElementById('game').getBoundingClientRect();
+    const r = document.getElementById(id).getBoundingClientRect();
+    return { x: r.left - g.left + r.width / 2, y: r.top - g.top + r.height * 0.35 };
+  },
+
+  spawn(cls, x, y, html = '') {
+    const el = document.createElement('div');
+    el.className = 'fx ' + cls;
+    el.innerHTML = html;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    this.layer().appendChild(el);
+    return el;
+  },
+
+  // 從 Red 丟向大野狼的拋物線（spin 是總共轉幾度）
+  throwItem(cls, html, duration, spin) {
+    const a = this.anchor('red');
+    const b = this.anchor('npc');
+    const el = this.spawn(cls, a.x, a.y, html);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const c = 'translate(-50%, -50%)';
+    return el.animate([
+      { transform: `${c} translate(0, 0) rotate(0deg) scale(0.8)` },
+      { transform: `${c} translate(${dx / 2}px, ${dy / 2 - 130}px) rotate(${spin / 2}deg) scale(1.1)` },
+      { transform: `${c} translate(${dx}px, ${dy}px) rotate(${spin}deg) scale(1)` }
+    ], { duration, easing: 'cubic-bezier(.4,0,.8,.6)' }).finished.then(() => el.remove());
+  },
+
+  // 擬聲字（中文），在命中點彈出
+  word(text, x, y) {
+    const el = this.spawn('fx-word', x, y, text);
+    return el.animate([
+      { transform: 'translate(-50%, -50%) scale(0.3) rotate(-12deg)', opacity: 0 },
+      { transform: 'translate(-50%, -120%) scale(1.25) rotate(-6deg)', opacity: 1, offset: 0.25 },
+      { transform: 'translate(-50%, -160%) scale(1) rotate(-6deg)', opacity: 0 }
+    ], { duration: 1100, easing: 'ease-out' }).finished.then(() => el.remove());
+  },
+
+  // 第 1 招：麵粉袋飛過去，炸開一大團白煙
+  async flour(onHit) {
+    const gen = this.gen;
+    await this.throwItem('fx-bag', 'FLOUR', 650, 300);
+    if (gen !== this.gen) return;
+    const b = this.anchor('npc');
+    onHit();
+    const puffs = [];
+    for (let i = 0; i < 9; i++) {
+      const p = this.spawn('fx-puff', b.x + (Math.random() - 0.5) * 140, b.y + (Math.random() - 0.5) * 120);
+      puffs.push(p.animate([
+        { transform: 'translate(-50%, -50%) scale(0.2)', opacity: 1 },
+        { transform: `translate(-50%, -50%) scale(${2 + Math.random()})`, opacity: 0.9, offset: 0.35 },
+        { transform: `translate(-50%, -80%) scale(${2.6 + Math.random()})`, opacity: 0 }
+      ], { duration: 1600 + Math.random() * 500, delay: i * 40, easing: 'ease-out' }).finished.then(() => p.remove()));
+    }
+    puffs.push(this.word('噗——！', b.x, b.y - 60));
+    await Promise.all(puffs);
+  },
+
+  // 第 2 招：鹽罐飛到大野狼頭上，鹽粒灑進眼睛
+  async salt(onHit) {
+    const gen = this.gen;
+    const b = this.anchor('npc');
+    const top = { x: b.x, y: b.y - 110 };
+    const shaker = this.spawn('fx-shaker', this.anchor('red').x, this.anchor('red').y);
+    await shaker.animate([
+      { transform: 'translate(-50%, -50%) rotate(0deg)' },
+      { transform: `translate(calc(-50% + ${top.x - this.anchor('red').x}px), calc(-50% + ${top.y - this.anchor('red').y}px)) rotate(160deg)` }
+    ], { duration: 550, easing: 'ease-out', fill: 'forwards' }).finished;
+    if (gen !== this.gen) { shaker.remove(); return; }
+    // 鹽罐在頭上左右甩
+    const shake = shaker.animate([
+      { transform: `translate(calc(-50% + ${top.x - this.anchor('red').x - 14}px), calc(-50% + ${top.y - this.anchor('red').y}px)) rotate(150deg)` },
+      { transform: `translate(calc(-50% + ${top.x - this.anchor('red').x + 14}px), calc(-50% + ${top.y - this.anchor('red').y}px)) rotate(200deg)` }
+    ], { duration: 160, iterations: 7, direction: 'alternate' });
+    onHit();
+    const grains = [];
+    for (let i = 0; i < 46; i++) {
+      const g = this.spawn('fx-grain', top.x + (Math.random() - 0.5) * 50, top.y + 14);
+      const fall = 90 + Math.random() * 70;
+      const drift = (Math.random() - 0.5) * 120;
+      grains.push(g.animate([
+        { transform: 'translate(-50%, -50%)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${drift}px), calc(-50% + ${fall}px))`, opacity: 0 }
+      ], { duration: 700 + Math.random() * 400, delay: Math.random() * 900, easing: 'ease-in' }).finished.then(() => g.remove()));
+    }
+    grains.push(this.word('沙沙沙！', b.x + 70, b.y - 40));
+    await Promise.all(grains);
+    shake.cancel();
+    shaker.remove();
+  },
+
+  // 第 3 招：盤子旋轉飛過去，命中閃光、大野狼被打飛
+  async plate(onHit) {
+    const gen = this.gen;
+    await this.throwItem('fx-plate', '', 520, 1080);
+    if (gen !== this.gen) return;
+    const b = this.anchor('npc');
+    onHit();
+    const flash = this.spawn('fx-flash', b.x, b.y);
+    const shards = [];
+    for (let i = 0; i < 10; i++) {
+      const s = this.spawn('fx-shard', b.x, b.y);
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 90 + Math.random() * 80;
+      shards.push(s.animate([
+        { transform: 'translate(-50%, -50%) rotate(0deg)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) rotate(${Math.random() * 720}deg)`, opacity: 0 }
+      ], { duration: 800, easing: 'ease-out' }).finished.then(() => s.remove()));
+    }
+    await Promise.all([
+      flash.animate([
+        { transform: 'translate(-50%, -50%) scale(0.2)', opacity: 1 },
+        { transform: 'translate(-50%, -50%) scale(1.6)', opacity: 0 }
+      ], { duration: 600, easing: 'ease-out' }).finished.then(() => flash.remove()),
+      this.word('匡噹！', b.x, b.y - 60),
+      ...shards
+    ]);
+  },
+
+  play(name, onHit) {
+    return this[name](onHit);
+  },
+
+  clear() {
+    const l = this.layer();
+    this.gen++;
+    if (l) l.innerHTML = '';
+  }
+};
+
+/* =========================================================
+ * 六、UI 渲染層：只負責畫面，不做對錯判斷
+ * ========================================================= */
+const $ = id => document.getElementById(id);
+
+const ui = {
+  typing: false,
+  typeTimer: null,
+  segs: [],
+  total: 0,
+  currentLine: null,
+  queue: [],
+  onQueueDone: null,
+  npcChar: 'mom',
+  npcState: 'normal',
+
+  SCENE_NAME: { home: 'Red 的家', room: '奶奶的房間', kitchen: '廚房', battle: 'Boss 戰', end: '真相大白' },
+
+  speakerName(speaker) {
+    if (speaker === 'npc') return this.npcState === 'wolf' || this.npcState === 'hurt' ? 'Big Bad Wolf' : 'Grandma';
+    return { red: 'Red', mom: 'Mom', tutor: 'AI 家教', narr: '旁白' }[speaker];
+  },
+
+  // 對白的 speaker 對應到語音角色
+  voiceOf(speaker) {
+    return { red: 'red', mom: 'mom', npc: 'grandma', tutor: 'tutor', narr: 'narr' }[speaker];
+  },
+
+  setScene(name) {
+    $('stage').className = 'scene-' + name;
+    $('scene-label').textContent = '場景：' + this.SCENE_NAME[name];
+  },
+
+  // 切換右側 NPC 的角色與表情
+  setNpc(char = this.npcChar, state = this.npcState) {
+    this.npcChar = char;
+    this.npcState = state;
+    const el = $('npc');
+    const dim = el.classList.contains('dim');
+    el.className = `sprite char-${char} state-${state}` + (dim ? ' dim' : '');
+    $('npc-label').textContent = char === 'mom' ? 'Mom 媽媽'
+      : (state === 'wolf' || state === 'hurt') ? 'Big Bad Wolf 大野狼' : 'Grandma（戴口罩）';
+  },
+
+  focusSpeaker(speaker) {
+    $('red').classList.toggle('dim', speaker !== 'red');
+    $('npc').classList.toggle('dim', speaker === 'red');
+  },
+
+  // 畫面劇烈震動（重設 class 讓動畫能重播）
+  quake() {
+    const g = $('game');
+    g.classList.remove('quake');
+    void g.offsetWidth;
+    g.classList.add('quake');
+  },
+
+  updateInfo() {
+    let label = '準備中';
+    if (game.state === STATES.RESULT) label = '結算';
+    else if (game.queue.length) {
+      // 主線第幾關 = 總關數 - 佇列裡還剩幾個主線關 + 1
+      const left = game.queue.filter(x => x.main).length;
+      const n = STAGES.length - left + 1;
+      label = game.queue[0].main ? `關卡 ${n} / ${STAGES.length}` : `追加題（關卡 ${n}）`;
+    }
+    $('info-stage').textContent = label;
+    $('info-err').textContent = `答錯 ${errorTotal()} 次`;
+  },
+
+  updateMute() {
+    $('mute-btn').textContent = soundOn ? '🔊 音效開' : '🔇 音效關';
+  },
+
+  // 大野狼血條（n = 剩幾格；0 以上顯示，null 隱藏）
+  setHp(n) {
+    const bar = $('boss-hp');
+    bar.classList.toggle('show', n !== null);
+    bar.querySelectorAll('.seg').forEach((s, i) => s.classList.toggle('lost', n === null || i >= n));
+  },
+
+  // 小紅帽愛心條（n = 剩幾顆；null 隱藏）
+  setHearts(n) {
+    const box = $('red-hearts');
+    box.classList.toggle('show', n !== null);
+    box.classList.toggle('last', n === 0);
+    box.innerHTML = n === null ? '' : Array.from({ length: RED_MAX_HEARTS },
+      (_, i) => `<span class="heart ${i < n ? '' : 'lost'}">♥</span>`).join('');
+  },
+
+  // 更新面板上的倒數計時
+  updateTimer() {
+    const t = game.battle && game.battle.timeLeft;
+    const box = document.querySelector('#panel .timer');
+    if (!box || t == null) return;
+    box.querySelector('.timer-num').textContent = `${Math.ceil(t)} 秒`;
+    box.querySelector('.timer-fill').style.width = `${(t / BATTLE_TIME_LIMIT) * 100}%`;
+    box.classList.toggle('warn', t <= 10);
+  },
+
+  // 攻擊失敗：大野狼往前逼近一步（最多三步）
+  approach(steps) {
+    $('npc').style.translate = `${-45 * Math.min(steps, 3)}px 0`;
+  },
+
+  // 命中：大野狼閃光後退，逼近的距離歸零
+  hitNpc() {
+    const el = $('npc');
+    el.style.translate = '';
+    el.classList.remove('hit');
+    void el.offsetWidth;
+    el.classList.add('hit');
+  },
+
+  // 打字機特效：逐字顯示（保留課本單字粗體），同時呼叫 speakText 播該角色的語音
+  typeLine(line) {
+    if (line.scene) this.setScene(line.scene);
+    if (line.char || line.state) this.setNpc(line.char, line.state);
+    if (line.quake) this.quake();
+    if ('hp' in line) this.setHp(line.hp);
+    if (line.music === 'start') music.play();
+    if (line.music === 'fade') music.fadeOut();
+    const sp = $('speaker');
+    sp.textContent = this.speakerName(line.speaker);
+    sp.className = line.speaker === 'red' ? '' : line.speaker;
+    this.focusSpeaker(line.speaker);
+
+    this.currentLine = line;
+    this.segs = toSegments(line.text);
+    this.total = line.text.length;
+    $('text').innerHTML = '';
+    $('sub').innerHTML = '';
+    $('next-arrow').classList.remove('show');
+    speakText(line.text, this.voiceOf(line.speaker));
+
+    this.typing = true;
+    let i = 0;
+    clearInterval(this.typeTimer);
+    this.typeTimer = setInterval(() => {
+      $('text').innerHTML = renderSegments(this.segs, ++i);
+      if (i >= this.total) this.finishTyping();
+    }, 32);
+  },
+
+  finishTyping() {
+    clearInterval(this.typeTimer);
+    this.typing = false;
+    $('text').innerHTML = renderSegments(this.segs);
+    $('sub').innerHTML = this.currentLine.sub ? renderSegments(toSegments(this.currentLine.sub)) : '';
+    if (this.queue.length > 0 || this.onQueueDone) $('next-arrow').classList.add('show');
+  },
+
+  play(lines, done) {
+    this.queue = lines.slice();
+    this.onQueueDone = done || null;
+    this.advance();
+  },
+
+  advance() {
+    if (this.typing) { this.finishTyping(); return; }
+    if (this.queue.length > 0) { this.typeLine(this.queue.shift()); return; }
+    if (this.onQueueDone) {
+      const cb = this.onQueueDone;
+      this.onQueueDone = null;
+      $('next-arrow').classList.remove('show');
+      cb();
+    }
+  },
+
+  // 中斷所有劇情（回到主頁用）
+  stopAll() {
+    clearInterval(this.typeTimer);
+    this.typing = false;
+    this.queue = [];
+    this.onQueueDone = null;
+    $('text').innerHTML = '';
+    $('sub').innerHTML = '';
+    $('next-arrow').classList.remove('show');
+    fx.clear();
+    this.setHp(null);
+    this.setHearts(null);
+    stopBattleTimer();
+    $('you-died').classList.remove('show');
+    $('red').classList.remove('down');
+    $('npc').classList.remove('lunge');
+    $('npc').style.translate = '';
+  },
+
+  // 面板：作答時才出現，送出後立刻 display:none
+  showPanel(html, battle = false) {
+    const p = $('panel');
+    p.innerHTML = html;
+    p.classList.toggle('battle', battle);
+    p.classList.remove('hidden');
+  },
+  hidePanel() {
+    $('panel').classList.add('hidden');
+  },
+
+  renderChoice(stage) {
+    const rows = stage.questions.map((q, i) => {
+      const done = i < L().choiceIndex;
+      const cls = done ? 'done' : i === L().choiceIndex ? 'active' : '';
+      return `<div class="q-line ${cls}"><span class="blank">${done ? q.answer : '&nbsp;'}</span>${q.after}</div>`;
+    }).join('');
+    this.showPanel(`
+      <div class="panel-title">${stage.title}</div>
+      <div class="who">${stage.who}</div>
+      ${rows}
+      <div class="choice-row">
+        <button class="btn" type="button" data-choice="How much">How much</button>
+        <button class="btn alt" type="button" data-choice="How many">How many</button>
+      </div>`);
+  },
+
+  // 文字關：句子裡的 {id} 換成輸入框
+  renderFill(stage) {
+    const slot = f => {
+      const solved = L().solved[f.id];
+      const cls = solved ? 'ok' : L().wrong[f.id] ? 'bad' : '';
+      const val = solved ? f.answer : (L().values[f.id] || '');
+      const letters = f.letters ? `<span class="letters">${f.letters}</span>` : '';
+      return `<span class="slot">${letters}<input class="word-input ${cls}" id="in-${f.id}"
+        value="${val.replace(/"/g, '&quot;')}" ${solved ? 'disabled' : ''}
+        autocomplete="off" autocapitalize="off" spellcheck="false"></span>`;
+    };
+    const lines = [].concat(stage.sentence).map(s => {
+      let html = s;
+      stage.fields.forEach(f => { html = html.replace(`{${f.id}}`, slot(f)); });
+      html = html.replace(/\(([^()]+)\)/g, '<span class="zh-tag">($1)</span>');
+      return `<div class="q-line">${html}</div>`;
+    }).join('');
+    this.showPanel(`
+      <div class="panel-title">${stage.title}</div>
+      <div class="who">${stage.who}</div>
+      ${lines}
+      <div class="choice-row"><button class="btn" type="button" id="submit-btn">送出</button></div>`);
+    // 游標放在答錯的那格，沒有就放第一個還沒答對的格子
+    const target = stage.fields.find(f => L().wrong[f.id] && !L().solved[f.id])
+      || stage.fields.find(f => !L().solved[f.id]);
+    if (target) setTimeout(() => $('in-' + target.id).focus(), 50);
+  },
+
+  // Boss 戰：一次只出一招。已經打出的招式顯示成綠色，目前這招一個輸入框
+  renderBattle(stage) {
+    const total = stage.fields.length;
+    const cur = stage.fields[L().phase];
+    const hp = total - L().phase;
+    const hearts = stage.fields.map((_, i) => `<span class="mini-seg ${i < hp ? '' : 'lost'}"></span>`).join('');
+    const doneLines = stage.fields.slice(0, L().phase)
+      .map(f => `<div class="q-line done">✔ ${escapeHtml(f.shout)}</div>`).join('');
+    const val = (L().values[cur.id] || '').replace(/"/g, '&quot;');
+    const html = cur.line
+      .replace(`{${cur.id}}`, `<input class="word-input ${L().wrong[cur.id] ? 'bad' : ''}" id="in-${cur.id}" value="${val}"
+        autocomplete="off" autocapitalize="off" spellcheck="false">`)
+      .replace(/\(([^()]+)\)/g, '<span class="zh-tag">($1)</span>');
+    this.showPanel(`
+      <div class="battle-head">
+        <span class="panel-title">${stage.title}第 ${L().phase + 1} 招 / ${total}</span>
+        <span class="mini-red">小紅帽 ${'♥'.repeat(game.battle.hearts)}${'♡'.repeat(RED_MAX_HEARTS - game.battle.hearts)}</span>
+        <span class="mini-hp">大野狼 HP ${hearts}</span>
+      </div>
+      <div class="timer"><span>⏱</span><div class="timer-bar"><div class="timer-fill"></div></div><span class="timer-num"></span></div>
+      ${doneLines}
+      <div class="who">${stage.who}</div>
+      <div class="q-line active">${html}</div>
+      <div class="choice-row"><button class="btn attack" type="button" id="submit-btn">Attack (攻擊)！</button></div>`, true);
+    this.updateTimer();
+    setTimeout(() => $('in-' + cur.id).focus(), 50);
+  },
+
+  /*
+   * 結算畫面
+   *   成就等級：errorStats 總和 0 → 傳說級；1～3 → 優秀特務；4 以上 → 見習生
+   *   精準推播：看哪一類錯最多（平手依 plural → uncountable → spelling → synonym 的順序）
+   *     plural      → 均一：名詞複數與容器量詞規則
+   *     uncountable → 均一：可數與不可數名詞判斷
+   *     spelling    → 單字拼寫大挑戰 ＋ 解鎖「大野狼單字打字機」
+   *     synonym     → 錯在容器選錯，同樣推「名詞複數與容器量詞規則」
+   *     全對        → 直接解鎖新挑戰當獎勵
+   */
+  renderResult() {
+    $('game').classList.add('ending');
+    const total = errorTotal();
+    const failed = game.failed;
+    let badge;
+    if (failed) badge = { cls: 'novice', text: '💀 挑戰失敗', en: 'Mission Failed' };
+    else if (total === 0) badge = { cls: 'legend', text: '🏆 傳說級外送員', en: 'Legendary Courier' };
+    else if (total >= 1 && total <= 3) badge = { cls: 'agent', text: '🥇 優秀特務', en: 'Excellent Agent' };
+    else badge = { cls: 'novice', text: '🥉 見習生', en: 'Novice Learner' };
+
+    const LABEL = { plural: '忘記加 s', uncountable: '可數／不可數', spelling: '拼字錯誤', synonym: '用錯量詞' };
+    const ORDER = ['plural', 'uncountable', 'spelling', 'synonym'];
+    const stats = ORDER.map(k => `<div>${LABEL[k]}<b>${errorStats[k]} 次</b></div>`).join('');
+    const max = Math.max(...ORDER.map(k => errorStats[k]));
+    // 失敗但一題都沒錯（純粹時間到）→ 算打字速度不夠，走拼字練習那條
+    const top = total === 0 ? (failed ? 'spelling' : null) : ORDER.find(k => errorStats[k] === max);
+
+    // 影片：YouTube 嵌入＋均一原網址的備用按鈕（直接雙擊開檔時 YouTube 可能拒播，按鈕一定能開）
+    const video = (url, title) => url
+      ? `<div class="video-frame"><iframe title="${title}" src="${toEmbedUrl(url)}" referrerpolicy="strict-origin-when-cross-origin"
+           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+         <a class="video-link" href="${url}" target="_blank" rel="noopener">▶ 影片播不出來？到均一平台觀看</a>`
+      : `<div class="video-frame"><iframe title="${title}" srcdoc="<body style='margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#222;color:#ddd;font-family:sans-serif;text-align:center'><div>${title}<br><small>請在程式最上方填入影片網址</small></div></body>"></iframe></div>`;
+    const unlock = `
+        <button class="btn unlock-btn" type="button" id="unlock-btn">🎉 解鎖新挑戰：大野狼的單字打字機 🎉</button>
+        <div id="minigame">小遊戲開發中，敬請期待...</div>`;
+
+    let branch;
+    if (top === 'plural' || top === 'synonym') {
+      branch = `
+        <div class="advice">${top === 'plural' ? '你最常忘記幫量詞加 s，' : '你最常用錯容器，'}來看看量詞的規則吧！</div>
+        <h3 class="rec-title">為你推薦｜均一平台：名詞複數與容器量詞規則</h3>
+        ${video(JUNYI_VIDEO_PLURAL_URL, '均一平台：名詞複數與容器量詞規則')}
+        <button class="btn" type="button" id="again-btn">再次挑戰</button>`;
+    } else if (top === 'uncountable') {
+      branch = `
+        <div class="advice">How much 和 How many 你還有點混淆，先把可數與不可數弄清楚！</div>
+        <h3 class="rec-title">為你推薦｜均一平台：可數與不可數名詞判斷</h3>
+        ${video(JUNYI_VIDEO_UNCOUNTABLE_URL, '均一平台：可數與不可數名詞判斷')}
+        <button class="btn" type="button" id="again-btn">再次挑戰</button>`;
+    } else if (top === 'spelling') {
+      branch = `
+        <div class="advice">✍️ 單字拼寫大挑戰</div>
+        <p class="rec-note">${failed && total === 0 ? '時間到了！觀念都對，只是打字還不夠快。' : '你的觀念大致都對，最常出錯的是拼字。'}用新遊戲練習打字，把單字拼熟！</p>
+        ${unlock}
+        <button class="btn alt" type="button" id="again-btn">再玩一次</button>`;
+    } else {
+      branch = `${unlock}
+        <button class="btn alt" type="button" id="again-btn">再玩一次</button>`;
+    }
+
+    $('result-screen').innerHTML = `
+      <div class="result-card">
+        <h2>${failed ? '挑戰失敗……' : '任務完成！'}</h2>
+        <div>${failed ? `被大野狼抓住了！目前總共答錯 ${total} 次，看完推薦再挑戰一次吧` : `獲得成就（總共答錯 ${total} 次）`}</div>
+        <div class="badge ${badge.cls}">${badge.text}<small>${badge.en}</small></div>
+        <div class="stats">${stats}</div>
+        <div class="review">
+          <b>今天的重點</b><br>
+          不可數（popcorn, water, flour, salt…）→ <b>How much</b> popcorn do you want?<br>
+          可數的容器（bags, bowls, cups…）→ <b>How many</b> bags of candy do you need?<br>
+          只有一個用 a：a <b>slice</b> of bread、a <b>bottle</b> of water<br>
+          大於一要變複數：two <b>bowls</b>、three <b>cups</b>、four <b>slices</b>、two <b>glasses</b>（字尾是 s 加 es）
+        </div>
+        ${branch}
+      </div>`;
+    $('result-screen').classList.add('show');
+  }
+};
+
+/* =========================================================
+ * 七、流程控制（串接資料層與 UI 層）
+ * ========================================================= */
+// 開新的一局：5 個主線關卡依序放進佇列
+function startGame() {
+  game.queue = STAGES.map(def => makeLevel(def, true));
+  startLevel();
+}
+
+// 開始佇列最前面的關卡：第一次進來播開場劇情；追加提問插隊回來的，只講一句再開面板
+function startLevel() {
+  const lv = game.queue[0];
+  setState(STATES.STORY);
+  ui.updateInfo();
+  if (lv.introDone) {
+    ui.play([{ speaker: 'tutor', text: '回到剛才的題目，這次一定沒問題！' }], openPanel);
+    return;
+  }
+  lv.introDone = true;
+  // 進 Boss 戰：重設時限與愛心
+  if (lv.def.type === 'battle') game.battle = { timeLeft: BATTLE_TIME_LIMIT, hearts: RED_MAX_HEARTS, timer: null };
+  ui.play(lv.def.intro, () => {
+    if (lv.def.type === 'battle') ui.setHearts(game.battle.hearts);
+    openPanel();
+  });
+}
+
+/*
+ * Boss 戰倒數：只在作答面板打開時倒數（openPanel 開始、closePanel 停止），
+ * 動畫、提示播放時不扣時間；歸零就失敗
+ */
+function startBattleTimer() {
+  stopBattleTimer();
+  const bt = game.battle;
+  let last = performance.now();
+  bt.timer = setInterval(() => {
+    const now = performance.now();
+    bt.timeLeft = Math.max(0, bt.timeLeft - (now - last) / 1000);
+    last = now;
+    ui.updateTimer();
+    if (bt.timeLeft <= 0) {
+      closePanel();
+      failBattle('time');
+    }
+  }, 100);
+}
+
+function stopBattleTimer() {
+  if (game.battle && game.battle.timer) {
+    clearInterval(game.battle.timer);
+    game.battle.timer = null;
+  }
+}
+
+/*
+ * Boss 戰失敗（時間到或愛心用完）：
+ *   大野狼衝到小紅帽面前 → 小紅帽倒下 → YOU DIED → 依目前的 errorStats 結算推薦影片
+ */
+function failBattle(reason) {
+  stopBattleTimer();
+  game.failed = true;
+  setState(STATES.STORY);
+  ui.queue = [];
+  ui.onQueueDone = null;
+  music.fadeOut(1500);
+  ui.setHp(null);
+  ui.setHearts(null);
+  ui.setNpc(undefined, 'wolf');
+
+  // 大野狼衝到小紅帽面前：算出兩個立繪之間的距離
+  const red = $('red').getBoundingClientRect();
+  const npc = $('npc');
+  const nr = npc.getBoundingClientRect();
+  npc.classList.add('lunge');
+  npc.style.translate = `${-(nr.left - red.right) - nr.width * 0.35}px 0`;
+  ui.quake();
+  ui.typeLine({ speaker: 'npc', text: 'I want a kid like you!', sub: reason === 'time' ? '時間到了！大野狼撲了過來！' : '愛心用完了！大野狼撲了過來！' });
+
+  const round = game;
+  setTimeout(() => {
+    if (game !== round) return;
+    $('red').classList.add('down');
+  }, 500);
+  setTimeout(() => {
+    if (game !== round) return;
+    $('died-sub').textContent = reason === 'time' ? '時間到了……' : '愛心用完了……';
+    $('you-died').classList.add('show');
+    speech.stop();
+  }, 1300);
+  setTimeout(() => {
+    if (game !== round) return;
+    $('you-died').classList.remove('show');
+    showResult();
+  }, 4600);
+}
+
+// 進入作答節點：面板出現
+function openPanel() {
+  if (!setState(STATES.ANSWER)) return;
+  const stage = D();
+  if (stage.type === 'choice') ui.renderChoice(stage);
+  else if (stage.type === 'battle') { ui.renderBattle(stage); startBattleTimer(); }
+  else ui.renderFill(stage);
+}
+
+// 作答送出：面板立刻隱藏，回到劇情狀態
+function closePanel() {
+  stopBattleTimer();
+  ui.hidePanel();
+  setState(STATES.STORY);
+}
+
+/*
+ * 答錯：errorStats 依類型 +1，換 AI 家教講提示
+ *   一般情況 → 點一下後面板再出現，原題重答
+ *   忘記加 s 且這格有追加題、還沒追加過 → 提示講完後把追加題 unshift() 插到佇列最前面
+ */
+function giveHint(res, key, field) {
+  countError(res.type);
+  const tries = bumpAttempt(key);
+  ui.setNpc(undefined, res.state);
+  // Boss 戰攻擊失敗：畫面震動、大野狼逼近一步、小紅帽扣一顆愛心；愛心已經扣光就失敗
+  if (D().type === 'battle') {
+    const bt = game.battle;
+    if (bt.hearts === 0) { failBattle('hearts'); return; }
+    bt.hearts--;
+    ui.setHearts(bt.hearts);
+    ui.quake();
+    ui.approach(++L().approach);
+  }
+  const line = res.tree[Math.min(tries, res.tree.length) - 1];
+
+  const remedialKey = field && field.remedial;
+  const usedKey = `${game.queue[0].def.title}-${field && field.id}`;
+  if (ERROR_CATEGORY[res.type] === 'plural' && remedialKey && !game.remedialUsed[usedKey]) {
+    game.remedialUsed[usedKey] = true;
+    ui.play([{ speaker: 'tutor', text: line }], () => {
+      game.queue.unshift(makeLevel(REMEDIAL[remedialKey], false));
+      startLevel();
+    });
+    return;
+  }
+  ui.play([{ speaker: 'tutor', text: line, sub: '（點一下繼續作答）' }], openPanel);
+}
+
+// 這一關全部答對：播放正確音效，播完劇情後 shift() 移出佇列，進下一關或結算
+function clearLevel() {
+  sfx.correct();
+  ui.play(D().done, () => {
+    game.queue.shift();
+    if (game.queue.length) startLevel();
+    else showResult();
+  });
+}
+
+function showResult() {
+  setState(STATES.RESULT);
+  speech.stop();
+  ui.updateInfo();
+  ui.renderResult();
+}
+
+function handleChoice(choice) {
+  const stage = D();
+  const q = stage.questions[L().choiceIndex];
+  closePanel();
+  const res = judgeChoice(q, choice);
+  if (!res.ok) { giveHint(res, `choice-${q.id}`); return; }
+
+  L().choiceIndex++;
+  const last = L().choiceIndex >= stage.questions.length;
+  if (last) { ui.play(q.okLines, clearLevel); return; }
+  sfx.correct();
+  ui.play(q.okLines, openPanel);
+}
+
+/*
+ * Boss 戰：一次判斷一招
+ *   答對 → 面板隱藏，Red 喊出整句，同時播放該招動作；命中瞬間大野狼扣血、被擊退，
+ *          動作播完接大野狼的反應，點一下進入下一招（最後一招打完進結局）
+ *   答錯 → 走一般的錯題引導（畫面震動、大野狼逼近）
+ */
+function handleBattleSubmit() {
+  const stage = D();
+  const field = stage.fields[L().phase];
+  L().values[field.id] = $('in-' + field.id).value;
+  closePanel();
+
+  const res = judgeBattle(stage, field, L().values[field.id]);
+  if (!res.ok) {
+    L().wrong[field.id] = true;
+    giveHint(res, `battle-${field.id}-${res.type}`);
+    return;
+  }
+
+  sfx.correct();
+  L().wrong[field.id] = false;
+  L().solved[field.id] = true;
+  L().phase++;
+  L().approach = 0;
+  const hpLeft = stage.fields.length - L().phase;
+  const last = L().phase >= stage.fields.length;
+
+  // Red 喊出這一招（播語音），動作同時開始；喊完前不讓玩家跳過，等動作播完才接反應
+  ui.play([{ speaker: 'red', text: field.shout, sub: '' }]);
+  // 記住這一回合的 game 物件：動畫中途按了回到主頁，game 會被換掉，舊動畫的回呼就不再動畫面
+  const round = game;
+  const action = fx.play(field.fx, () => {
+    if (game !== round) return;
+    ui.setNpc(undefined, 'hurt');   // 先換表情（會重設 class），再加受擊動畫
+    ui.hitNpc();
+    ui.setHp(hpLeft);
+  });
+  // 至少等 2.2 秒，讓 Red 喊的那句語音唸完
+  Promise.all([action, new Promise(r => setTimeout(r, 2200))]).then(() => {
+    if (game !== round) return;
+    if (last) ui.setHearts(null);
+    ui.play([field.react], last ? () => ui.play(stage.done, () => { game.queue.shift(); showResult(); }) : openPanel);
+  });
+}
+
+function handleFillSubmit() {
+  const stage = D();
+  if (stage.type === 'battle') { handleBattleSubmit(); return; }
+  // 送出前先記下輸入內容，答錯回來時保留讓他修改
+  stage.fields.forEach(f => {
+    if (!L().solved[f.id]) L().values[f.id] = $('in-' + f.id).value;
+  });
+  closePanel();
+
+  let first = null;
+  L().wrong = {};
+  stage.fields.forEach(f => {
+    if (L().solved[f.id]) return;
+    const res = judgeFill(stage, f, L().values[f.id]);
+    if (res.ok) { L().solved[f.id] = true; return; }
+    L().wrong[f.id] = true;
+    if (!first) first = { res, f };   // 一次只講一個問題，先講前面那格
+  });
+
+  if (first) { giveHint(first.res, `${stage.title}-${first.f.id}-${first.res.type}`, first.f); return; }
+  clearLevel();
+}
+
+// 回到主頁：重置所有狀態，回到開場畫面
+function resetToTitle() {
+  speech.stop();
+  music.stop();
+  ui.stopAll();
+  errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
+  game = freshGame();
+  $('game').classList.remove('ending', 'quake');
+  $('result-screen').classList.remove('show');
+  $('title-screen').classList.add('show');
+  ui.hidePanel();
+  ui.setScene('home');
+  ui.setNpc('mom', 'normal');
+  ui.updateInfo();
+}
+
+/* =========================================================
+ * 八、事件處理
+ * ========================================================= */
+$('start-btn').addEventListener('click', () => {
+  speech.unlock();          // 必須在點擊事件裡初始化語音，否則瀏覽器會擋
+  speech.enabled = speech.supported && soundOn;
+  music.prime();            // 同理，先在點擊裡解鎖戰鬥音樂
+  ui.updateMute();
+  sfx.unlock();             // 正確音效的 AudioContext 也要在點擊裡建立
+  $('title-screen').classList.remove('show');
+  startGame();
+});
+
+$('home-btn').addEventListener('click', () => {
+  if (game.state !== STATES.TITLE) resetToTitle();
+});
+
+// 音效總開關：語音與戰鬥音樂一起開關
+$('mute-btn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  speech.enabled = speech.supported && soundOn && game.state !== STATES.TITLE;
+  if (!soundOn) speech.stop();
+  music.setMuted(!soundOn);
+  ui.updateMute();
+});
+
+$('dialogue').addEventListener('click', () => {
+  if (game.state === STATES.STORY) ui.advance();
+});
+
+$('panel').addEventListener('click', e => {
+  if (game.state !== STATES.ANSWER) return;
+  const btn = e.target.closest('[data-choice]');
+  if (btn) handleChoice(btn.dataset.choice);
+  if (e.target.id === 'submit-btn') handleFillSubmit();
+});
+
+$('result-screen').addEventListener('click', e => {
+  if (e.target.id === 'unlock-btn') $('minigame').classList.toggle('show');
+  if (e.target.id === 'again-btn') resetToTitle();
+});
+
+document.addEventListener('keydown', e => {
+  const inInput = e.target.tagName === 'INPUT';
+  if (inInput && e.key === 'Enter' && game.state === STATES.ANSWER) {
+    handleFillSubmit();
+    return;
+  }
+  if (!inInput && (e.key === 'Enter' || e.key === ' ') && game.state === STATES.STORY) {
+    e.preventDefault();
+    ui.advance();
+  }
+});
+
+// 預載所有素材
+['bg_home', 'bg_room', 'bg_kitchen', 'bg_end', 'sp_red', 'sp_mom', 'sp_granny_normal',
+  'sp_granny_happy', 'sp_granny_angry', 'sp_wolf', 'sp_wolf_hurt']
+  .forEach(n => { new Image().src = `assets/${n}.webp`; });
+
+ui.updateMute();
+ui.updateInfo();
+</script>
+</body>
+</html>
