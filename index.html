@@ -925,7 +925,7 @@ const VOCAB = [
   // 容器量詞（can 只算「罐」：cans 或 can of，助動詞 Can you 不算）
   'glass(?:es)?', 'bottles?', 'tubs?', 'bowls?', 'cups?', 'slices?', 'bags?', 'cans', 'can(?= of)',
   // 其他課本單字
-  'sick', 'because', 'need', 'still', 'yummy', 'easy', 'enjoy', 'each', 'wear(?:ing)?', 'why', 'get'
+  'sick', 'because', 'need', 'still', 'yummy', 'easy', 'enjoy', 'each', 'wear(?:ing)?', 'why', 'get', 'rice'
 ];
 const VOCAB_RE = new RegExp(`\\b(?:${VOCAB.join('|')})\\b`, 'gi');
 
@@ -978,10 +978,10 @@ const REMEDIAL = {
     type: 'fill',
     who: 'AI 家教問：',
     sentence: '那如果是三片披薩呢？ three {r_slices} (片) of pizza?',
-    fields: [{ id: 'r_slices', answer: 'slices', singular: 'slice', zh: '片', food: 'pizza', plural: true }],
+    fields: [{ id: 'r_slices', answer: 'slices', singular: 'slice', zh: '片', food: 'pizza', plural: true, alts: ['piece'] }],
     hints: { spelling: '再檢查一下拼字，『片』是 slice，並注意要不要加複數 s 喔！' },
-    intro: [{ speaker: 'tutor', text: '先停一下！我們用一題小練習，確認你真的會了。' }],
-    done: [{ speaker: 'tutor', text: '答對了！數量大於一，量詞就要加 s。現在回到 Grandma 的題目吧！' }]
+    intro: [{ speaker: 'tutor', text: '剛才那關你一開始忘了幫量詞加 s，我們用一題小練習確認你真的會了！' }],
+    done: [{ speaker: 'tutor', text: '答對了！數量大於一，量詞就要加 s。繼續冒險吧！' }]
   },
   // 關卡 4 披薩漏 s → 換成碗再練一次
   bowls: {
@@ -989,21 +989,26 @@ const REMEDIAL = {
     type: 'fill',
     who: 'AI 家教問：',
     sentence: '那如果是兩碗水果沙拉呢？ two {r_bowls} (碗) of fruit salad?',
-    fields: [{ id: 'r_bowls', answer: 'bowls', singular: 'bowl', zh: '碗', food: 'fruit salad', plural: true }],
+    fields: [{ id: 'r_bowls', answer: 'bowls', singular: 'bowl', zh: '碗', food: 'fruit salad', plural: true, alts: ['dish'] }],
     hints: { spelling: '再檢查一下拼字，『碗』是 bowl，並注意要不要加複數 s 喔！' },
-    intro: [{ speaker: 'tutor', text: '先停一下！我們用一題小練習，確認你真的會了。' }],
-    done: [{ speaker: 'tutor', text: '答對了！數量大於一，量詞就要加 s。現在回到 Grandma 的題目吧！' }]
+    intro: [{ speaker: 'tutor', text: '剛才那關你一開始忘了幫量詞加 s，我們用一題小練習確認你真的會了！' }],
+    done: [{ speaker: 'tutor', text: '答對了！數量大於一，量詞就要加 s。繼續冒險吧！' }]
   },
-  // 關卡 4 glass 漏 es → 換成奶昔再練一次 es 規則
-  glasses: {
-    title: '追加提問｜字尾是 s 的複數',
+  // 關卡 4 glass 漏 es → 換一個也要加 es 的字（dish → dishes）練習同一條規則
+  // dish 不在課本裡，所以題目括號直接給出 dish
+  dishes: {
+    title: '追加提問｜字尾要加 es 的複數',
     type: 'fill',
     who: 'AI 家教問：',
-    sentence: '那如果是三杯奶昔呢？ three {r_glasses} (玻璃杯) of milk shake?',
-    fields: [{ id: 'r_glasses', answer: 'glasses', singular: 'glass', zh: '玻璃杯', food: 'milk shake', plural: true }],
-    hints: { spelling: '再檢查一下拼字，『玻璃杯』是 glass，字尾是 s 的字複數要加 es 喔！' },
-    intro: [{ speaker: 'tutor', text: '先停一下！glass 的複數比較特別，我們再練一題。' }],
-    done: [{ speaker: 'tutor', text: '答對了！字尾是 s 的字，複數要加 es。現在回到 Grandma 的題目吧！' }]
+    sentence: '那如果是三盤水果沙拉呢？ three {r_dishes} (dish 盤子) of fruit salad?',
+    fields: [{
+      id: 'r_dishes', answer: 'dishes', singular: 'dish', zh: '盤子', food: 'fruit salad', plural: true,
+      // plates 也是正確的英文，但這題要練的是 es 規則，提醒而不算錯
+      rejectHints: { plates: 'plates 意思也對！不過這一題要練習「字尾要加 es」的規則，請用括號裡 dish 的複數喔！' }
+    }],
+    hints: { spelling: '再檢查一下拼字，『盤子』是 dish，字尾是 sh 的字，複數要加 es 喔！' },
+    intro: [{ speaker: 'tutor', text: '剛才 glass 的複數比較特別，我們換一個也要加 es 的字再練一題！' }],
+    done: [{ speaker: 'tutor', text: '答對了！字尾是 s、sh 的字，複數要加 es。繼續冒險吧！' }]
   }
 };
 
@@ -1024,7 +1029,7 @@ const STAGES = [
     who: 'Mom 說：',
     sentence: 'I prepared a {bread} (片) of bread and a {water} (瓶) of water for Grandma.',
     fields: [
-      { id: 'bread', answer: 'slice', singular: 'slice', zh: '片', food: 'bread', letters: 's _ _ _ e', plural: false },
+      { id: 'bread', answer: 'slice', singular: 'slice', zh: '片', food: 'bread', letters: 's _ _ _ e', plural: false, alts: ['piece'] },
       { id: 'water', answer: 'bottle', singular: 'bottle', zh: '瓶', food: 'water', letters: 'b _ _ _ _ e', plural: false }
     ],
     hints: { spelling: '媽媽提醒你，『片』是 s 開頭，『瓶』是 b 開頭的單字喔，再確認一下拼法！' },
@@ -1050,15 +1055,15 @@ const STAGES = [
       {
         id: 'popcorn', after: ' popcorn do you want?', answer: 'How much',
         tree: [
-          '等等！爆米花 (popcorn) 不可數，但糖果裝在袋子 (bags) 裡，字尾有 s 是可以數的喔！',
-          '想想看：我們會說 one popcorn、two popcorns 嗎？不可數的東西，問「多少」要用哪一個？'
+          '大家平常買或吃爆米花都是一大把或一桶，就像 rice（米飯）或 salt（鹽）一樣，不會去數它有幾顆。',
+          '想想看：我們會說 one popcorn、two popcorns 嗎？不能一顆一顆數的東西，問「多少」要用哪一個？'
         ],
         okLines: [{ speaker: 'npc', state: 'happy', text: 'Lots of popcorn, please!', sub: '要很多很多爆米花！' }]
       },
       {
         id: 'candy', after: ' bags of candy do you need?', answer: 'How many',
         tree: [
-          '等等！爆米花 (popcorn) 不可數，但糖果裝在袋子 (bags) 裡，字尾有 s 是可以數的喔！',
+          '這次問的是 bags of candy。糖果裝在袋子 (bags) 裡，袋子可以一袋、兩袋地數，bags 字尾還有 s 喔！',
           '注意 bags 後面有 s！可以一袋、兩袋數的東西，問句該用哪一個？'
         ],
         okLines: [
@@ -1087,8 +1092,8 @@ const STAGES = [
     who: 'Red 確認：',
     sentence: 'So, you want two {salad} (碗) of fruit salad and three {shake} (杯) of milk shake?',
     fields: [
-      { id: 'salad', answer: 'bowls', singular: 'bowl', zh: '碗', food: 'fruit salad', plural: true, remedial: 'slices' },
-      { id: 'shake', answer: 'cups', singular: 'cup', zh: '杯', food: 'milk shake', plural: true, remedial: 'slices' }
+      { id: 'salad', answer: 'bowls', singular: 'bowl', zh: '碗', food: 'fruit salad', plural: true, remedial: 'slices', alts: ['dish'] },
+      { id: 'shake', answer: 'cups', singular: 'cup', zh: '杯', food: 'milk shake', plural: true, remedial: 'slices', alts: ['mug'] }
     ],
     hints: {
       plural: '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
@@ -1112,8 +1117,8 @@ const STAGES = [
     who: 'Red 確認：',
     sentence: 'Four {pizza} (片) of pizza and two {water} (玻璃杯) of water?',
     fields: [
-      { id: 'pizza', answer: 'slices', singular: 'slice', zh: '片', food: 'pizza', plural: true, remedial: 'bowls' },
-      { id: 'water', answer: 'glasses', singular: 'glass', zh: '玻璃杯', food: 'water', plural: true, remedial: 'glasses' }
+      { id: 'pizza', answer: 'slices', singular: 'slice', zh: '片', food: 'pizza', plural: true, remedial: 'bowls', alts: ['piece'] },
+      { id: 'water', answer: 'glasses', singular: 'glass', zh: '玻璃杯', food: 'water', plural: true, remedial: 'dishes' }
     ],
     hints: {
       plural: '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
@@ -1153,7 +1158,7 @@ const STAGES = [
         react: { speaker: 'npc', state: 'hurt', text: 'No! Not the salt!', sub: '鹽巴撒進眼睛，大野狼痛得哇哇大叫！' }
       },
       {
-        id: 'plate', answer: 'plate', zh: '盤子', letter: 'p', fx: 'plate',
+        id: 'plate', answer: 'plate', zh: '盤子', letter: 'p', fx: 'plate', alts: ['dish'],
         line: 'Take this heavy {plate} (盤子)!',
         shout: 'Take this heavy plate!',
         react: { speaker: 'npc', state: 'hurt', text: 'No, no, no!', sub: '盤子正中大野狼，牠被打飛出去！' }
@@ -1201,6 +1206,7 @@ function makeLevel(def, main) {
     def,
     main,
     introDone: false,
+    pending: [],           // 這關裡忘記加 s 的格子對應的追加題，通過這關後才插進佇列
     st: {
       choiceIndex: 0,      // 按鈕關目前作答到第幾題
       phase: 0,            // Boss 戰目前第幾招（0 起算）
@@ -1242,11 +1248,13 @@ const ERROR_CATEGORY = {
   choice: 'uncountable',
   plural: 'plural', esRule: 'plural', extraS: 'plural',
   synonym: 'synonym', swapped: 'synonym', otherUnit: 'synonym', order: 'synonym',
-  typo: 'spelling', empty: 'spelling'
+  typo: 'spelling', empty: 'spelling',
+  textbookOnly: null      // 課外但正確的單字：只提醒，不計入 errorStats
 };
 
 // 答錯一次：依類型累計 errorStats
 function countError(type) {
+  if (!ERROR_CATEGORY[type]) return;
   errorStats[ERROR_CATEGORY[type]]++;
   ui.updateInfo();
 }
@@ -1254,6 +1262,16 @@ function countError(type) {
 function bumpAttempt(key) {
   game.attempts[key] = (game.attempts[key] || 0) + 1;
   return game.attempts[key];
+}
+
+// 英文複數：字尾 s、sh、ch、x 加 es，其餘加 s（課外單字 piece、dish、mug 用得到）
+function pluralize(w) {
+  return /(s|sh|ch|x)$/.test(w) ? w + 'es' : w + 's';
+}
+
+// 課外但正確的單字：英文沒錯，只是不是課本教的字 → 提醒用課本單字，不算答錯
+function textbookOnlyHint(zh, letter) {
+  return `你的單字雖然正確，但我們要用課本裡的單字喔！（提示：「${zh}」是 ${letter} 開頭的課本單字）`;
 }
 
 // 輸入淨化：轉小寫、去頭尾空白，中間多個空白壓成一個
@@ -1312,7 +1330,7 @@ function judgeFill(stage, field, raw) {
   if (field.plural && field.answer === field.singular + 'es' && (input === field.singular || input === field.singular + 's')) {
     return {
       ok: false, type: 'esRule', state: 'hint',
-      tree: [`容器拼對了！數字大於一要變複數，可是 ${field.singular} 的字尾本來就是 s，這種字的複數不是只加 s，而是加什麼呢？`]
+      tree: [`容器拼對了！數字大於一要變複數，可是 ${field.singular} 的字尾是 ${field.singular.match(/(sh|ch|s|x)$/)[1]}，這種字的複數不是只加 s，而是加什麼呢？`]
     };
   }
 
@@ -1327,9 +1345,28 @@ function judgeFill(stage, field, raw) {
     };
   }
 
-  // 錯誤類型 4：披薩用了課本以外的同義詞 piece / pieces
-  if (field.food === 'pizza' && (input === 'piece' || input === 'pieces')) {
-    return { ok: false, type: 'synonym', state: 'hint', tree: ['意思很接近！但在這次任務中，披薩的單位要用課本教的『s』開頭的那個單字喔！'] };
+  // 錯誤類型 4：這一題指定要練的字（例如追加題要練 dishes，plates 雖然也對）
+  if (field.rejectHints && field.rejectHints[input]) {
+    return { ok: false, type: 'textbookOnly', state: 'hint', tree: [field.rejectHints[input]] };
+  }
+
+  // 錯誤類型 5：課本以外、但英文用法正確的單字（piece、dish、mug…）
+  for (const alt of field.alts || []) {
+    const right = field.plural ? pluralize(alt) : alt;    // 單複數用對的寫法
+    const wrong = field.plural ? alt : pluralize(alt);    // 單複數用錯的寫法
+    if (input === right) {
+      // 單複數、用法都對，只是不是課本的字 → 提醒，不算錯
+      return { ok: false, type: 'textbookOnly', state: 'hint', tree: [textbookOnlyHint(field.zh, field.answer[0])] };
+    }
+    if (input === wrong) {
+      // 課外字而且單複數也錯 → 當成單複數錯誤，順便提醒用課本單字
+      return {
+        ok: false, type: field.plural ? 'plural' : 'extraS', state: 'hint',
+        tree: [field.plural
+          ? `前面的數字大於一，量詞要加 s 喔！另外，這裡要用課本裡的單字（「${field.zh}」是 ${field.answer[0]} 開頭）。`
+          : `前面是 a，代表只有一個，不用加 s 喔！另外，這裡要用課本裡的單字（「${field.zh}」是 ${field.answer[0]} 開頭）。`]
+      };
+    }
   }
 
   // 錯誤類型 5：拼對了課本裡「另一個」容器量詞
@@ -1366,6 +1403,10 @@ function judgeBattle(stage, field, raw) {
   // 沒填：還少一招
   if (input === '') {
     return { ok: false, type: 'empty', state: 'wolf', tree: [`還有一招沒填！「${field.zh}」是 ${field.letter} 開頭的單字，快補上！`] };
+  }
+  // 課本以外、但英文正確的單字（例如 dish）→ 提醒用課本單字，不算錯、不扣愛心
+  if ((field.alts || []).includes(input)) {
+    return { ok: false, type: 'textbookOnly', state: 'hint', tree: [textbookOnlyHint(field.zh, field.letter)] };
   }
   // 填了別招的答案：招式用錯了
   const other = stage.fields.find(f => f.answer === input);
@@ -1590,7 +1631,7 @@ const ui = {
       // 主線第幾關 = 總關數 - 佇列裡還剩幾個主線關 + 1
       const left = game.queue.filter(x => x.main).length;
       const n = STAGES.length - left + 1;
-      label = game.queue[0].main ? `關卡 ${n} / ${STAGES.length}` : `追加題（關卡 ${n}）`;
+      label = game.queue[0].main ? `關卡 ${n} / ${STAGES.length}` : '追加題';
     }
     $('info-stage').textContent = label;
     $('info-err').textContent = `答錯 ${errorTotal()} 次`;
@@ -1990,16 +2031,17 @@ function closePanel() {
 }
 
 /*
- * 答錯：errorStats 依類型 +1，換 AI 家教講提示
- *   一般情況 → 點一下後面板再出現，原題重答
- *   忘記加 s 且這格有追加題、還沒追加過 → 提示講完後把追加題 unshift() 插到佇列最前面
+ * 答錯：errorStats 依類型 +1，換 AI 家教講提示，點一下後面板再出現，原題重答
+ *   忘記加 s 且這格有追加題 → 先記在這關的 pending，等這關通過後才插進佇列
+ *   課外但正確的單字（textbookOnly）→ 只提醒：不計錯、Boss 戰不扣愛心
  */
-function giveHint(res, key, field) {
+function giveHint(res, key) {
+  const counted = !!ERROR_CATEGORY[res.type];
   countError(res.type);
   const tries = bumpAttempt(key);
   ui.setNpc(undefined, res.state);
   // Boss 戰攻擊失敗：畫面震動、大野狼逼近一步、小紅帽扣一顆愛心；愛心已經扣光就失敗
-  if (D().type === 'battle') {
+  if (D().type === 'battle' && counted) {
     const bt = game.battle;
     if (bt.hearts === 0) { failBattle('hearts'); return; }
     bt.hearts--;
@@ -2009,24 +2051,28 @@ function giveHint(res, key, field) {
   }
   const line = res.tree[Math.min(tries, res.tree.length) - 1];
 
-  const remedialKey = field && field.remedial;
-  const usedKey = `${game.queue[0].def.title}-${field && field.id}`;
-  if (ERROR_CATEGORY[res.type] === 'plural' && remedialKey && !game.remedialUsed[usedKey]) {
-    game.remedialUsed[usedKey] = true;
-    ui.play([{ speaker: 'tutor', text: line }], () => {
-      game.queue.unshift(makeLevel(REMEDIAL[remedialKey], false));
-      startLevel();
-    });
-    return;
-  }
   ui.play([{ speaker: 'tutor', text: line, sub: '（點一下繼續作答）' }], openPanel);
 }
 
-// 這一關全部答對：播放正確音效，播完劇情後 shift() 移出佇列，進下一關或結算
+// 記下這關通過後要補的追加題：漏 s 且這格有追加題（同一格只登記一次，同一道追加題不重複）
+function notePending(field, res) {
+  const lv = game.queue[0];
+  const usedKey = `${lv.def.title}-${field.id}`;
+  if (ERROR_CATEGORY[res.type] !== 'plural' || !field.remedial || game.remedialUsed[usedKey]) return;
+  game.remedialUsed[usedKey] = true;
+  if (!lv.pending.includes(field.remedial)) lv.pending.push(field.remedial);
+}
+
+/*
+ * 這一關全部答對：播放正確音效，播完劇情後 shift() 移出佇列；
+ * 這關有待補的追加題 → unshift() 插到佇列最前面（在下一個主線關卡之前）
+ */
 function clearLevel() {
   sfx.correct();
   ui.play(D().done, () => {
-    game.queue.shift();
+    const cleared = game.queue.shift();
+    cleared.pending.slice().reverse()
+      .forEach(k => game.queue.unshift(makeLevel(REMEDIAL[k], false)));
     if (game.queue.length) startLevel();
     else showResult();
   });
@@ -2114,10 +2160,11 @@ function handleFillSubmit() {
     const res = judgeFill(stage, f, L().values[f.id]);
     if (res.ok) { L().solved[f.id] = true; return; }
     L().wrong[f.id] = true;
-    if (!first) first = { res, f };   // 一次只講一個問題，先講前面那格
+    notePending(f, res);              // 每一格漏 s 都登記追加題
+    if (!first) first = { res, f };   // 但提示一次只講一個問題，先講前面那格
   });
 
-  if (first) { giveHint(first.res, `${stage.title}-${first.f.id}-${first.res.type}`, first.f); return; }
+  if (first) { giveHint(first.res, `${stage.title}-${first.f.id}-${first.res.type}`); return; }
   clearLevel();
 }
 
