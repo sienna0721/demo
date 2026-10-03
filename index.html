@@ -1032,7 +1032,7 @@ const STAGES = [
       { id: 'bread', answer: 'slice', singular: 'slice', zh: '片', food: 'bread', letters: 's _ _ _ e', plural: false, alts: ['piece'] },
       { id: 'water', answer: 'bottle', singular: 'bottle', zh: '瓶', food: 'water', letters: 'b _ _ _ _ e', plural: false }
     ],
-    hints: { spelling: '媽媽提醒你，『片』是 s 開頭，『瓶』是 b 開頭的單字喔，再確認一下拼法！' },
+    hints: { spelling: '再檢查一下拼字喔！媽媽提醒你，『片』是 s 開頭，『瓶』是 b 開頭的單字。' },
     intro: [
       { speaker: 'narr', text: '(Red is at home.)', sub: 'Red 在家裡，媽媽正在整理籃子。', scene: 'home', char: 'mom', state: 'normal' },
       { speaker: 'mom', text: 'Grandma is sick, so we need to prepare a yummy snack for her.', sub: '奶奶生病了，所以我們要幫她準備好吃的點心。' },
@@ -1096,7 +1096,7 @@ const STAGES = [
       { id: 'shake', answer: 'cups', singular: 'cup', zh: '杯', food: 'milk shake', plural: true, remedial: 'slices', alts: ['mug'] }
     ],
     hints: {
-      plural: '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
+      plural: '容器拼對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！',
       synonym: '意思很接近！但 Grandma 想要裝在『碗 (b開頭)』和『杯子 (c開頭)』裡，再試試看！',
       spelling: '再檢查一下拼字，『碗』是 bowl，『杯』是 cup，並注意要不要加複數 s 喔！'
     },
@@ -1121,7 +1121,7 @@ const STAGES = [
       { id: 'water', answer: 'glasses', singular: 'glass', zh: '玻璃杯', food: 'water', plural: true, remedial: 'dishes' }
     ],
     hints: {
-      plural: '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
+      plural: '容器拼對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！',
       synonym: '意思很接近！但 Grandma 想要的是『片 (s開頭)』和『玻璃杯 (g開頭)』，再試試看！',
       spelling: '再檢查一下拼字，『片』是 slice，『玻璃杯』是 glass，並注意要不要加複數 s 喔！'
     },
@@ -1271,7 +1271,7 @@ function pluralize(w) {
 
 // 課外但正確的單字：英文沒錯，只是不是課本教的字 → 提醒用課本單字，不算答錯
 function textbookOnlyHint(zh, letter) {
-  return `你的單字雖然正確，但我們要用課本裡的單字喔！（提示：「${zh}」是 ${letter} 開頭的課本單字）`;
+  return `你的用法正確，但我們要使用課本內的單字喔！（提示：「${zh}」是 ${letter} 開頭的課本單字）`;
 }
 
 // 輸入淨化：轉小寫、去頭尾空白，中間多個空白壓成一個
@@ -1309,6 +1309,22 @@ function judgeChoice(q, choice) {
  * @param {string} raw   學生原始輸入
  */
 function judgeFill(stage, field, raw) {
+  /*
+   * 判斷順序（每一步判斷到就 return，彼此互斥）：
+   *   正確 ............................. ok
+   *   0. 留白 .......................... empty     → spelling
+   *   ── 情境 2：單複數問題 ──
+   *   1. a 後面卻加了 s ................ extraS    → plural
+   *   2. 字尾 s/sh 該加 es（glass、dish） esRule    → plural
+   *   3. 數字大於一卻輸入單數 .......... plural    → plural（通過這關後追加提問）
+   *   ── 情境 3：用法正確但不是課本單字 ──
+   *   4. 這題指定要練的字 .............. textbookOnly → 不計錯
+   *   5. 課外同義字且單複數正確 ........ textbookOnly → 不計錯（單複數錯 → plural）
+   *   ── 其他 ──
+   *   6. 課本裡別的容器（放反或用錯）... swapped / otherUnit → synonym
+   *   ── 情境 1：拼字或基礎錯誤 ──
+   *   7. 以上都不是 ..................... typo      → spelling
+   */
   const input = normalize(raw);
 
   // 正確
@@ -1321,7 +1337,7 @@ function judgeFill(stage, field, raw) {
 
   // 錯誤類型 1（關卡 1）：前面是 a（只有一個），卻多加了 s
   if (!field.plural && (input === field.answer + 's' || input === field.answer + 'es')) {
-    return { ok: false, type: 'extraS', state: 'hint', tree: ['拼得很好！可是你看，前面是 a，代表只有一個，量詞還需要加 s 嗎？'] };
+    return { ok: false, type: 'extraS', state: 'hint', tree: ['拼得很好，但這是單複數的問題！前面是 a，代表只有一個，量詞還需要加 s 嗎？'] };
   }
 
   // 錯誤類型 2（關卡 4 的 glass）：字尾是 s 的字，複數要加 es
@@ -1330,7 +1346,7 @@ function judgeFill(stage, field, raw) {
   if (field.plural && field.answer === field.singular + 'es' && (input === field.singular || input === field.singular + 's')) {
     return {
       ok: false, type: 'esRule', state: 'hint',
-      tree: [`容器拼對了！數字大於一要變複數，可是 ${field.singular} 的字尾是 ${field.singular.match(/(sh|ch|s|x)$/)[1]}，這種字的複數不是只加 s，而是加什麼呢？`]
+      tree: [`容器拼對了，但這是單複數的問題！數字大於一要變複數，可是 ${field.singular} 的字尾是 ${field.singular.match(/(sh|ch|s|x)$/)[1]}，這種字的複數不是只加 s，而是加什麼呢？`]
     };
   }
 
@@ -1339,8 +1355,8 @@ function judgeFill(stage, field, raw) {
     return {
       ok: false, type: 'plural', state: 'hint',
       tree: [
-        stage.hints?.plural || '容器拼對了！但你看前面數字大於一，量詞本身也要加上 s 變身喔！',
-        `再看一次句子，前面的數字是幾？${field.singular} 後面要加上什麼才是「很多個」？`
+        stage.hints?.plural || '容器拼對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！',
+        `還是單複數的問題喔！再看一次句子，前面的數字是幾？大於一的時候，${field.singular} 後面要加上什麼才是「很多個」？`
       ]
     };
   }
@@ -1363,25 +1379,25 @@ function judgeFill(stage, field, raw) {
       return {
         ok: false, type: field.plural ? 'plural' : 'extraS', state: 'hint',
         tree: [field.plural
-          ? `前面的數字大於一，量詞要加 s 喔！另外，這裡要用課本裡的單字（「${field.zh}」是 ${field.answer[0]} 開頭）。`
-          : `前面是 a，代表只有一個，不用加 s 喔！另外，這裡要用課本裡的單字（「${field.zh}」是 ${field.answer[0]} 開頭）。`]
+          ? `這是單複數的問題！前面的數字大於一，量詞要加 s 喔！另外，這裡要用課本裡的單字（「${field.zh}」是 ${field.answer[0]} 開頭）。`
+          : `這是單複數的問題！前面是 a，代表只有一個，不用加 s 喔！另外，這裡要用課本裡的單字（「${field.zh}」是 ${field.answer[0]} 開頭）。`]
       };
     }
   }
 
-  // 錯誤類型 5：拼對了課本裡「另一個」容器量詞
+  // 錯誤類型 6：拼對了課本裡「另一個」容器量詞
   const base = input.endsWith('es') && TEXTBOOK_UNITS.includes(input.slice(0, -2))
     ? input.slice(0, -2)
     : input.endsWith('s') ? input.slice(0, -1) : input;
   if (TEXTBOOK_UNITS.includes(base) && base !== field.singular) {
-    // 5a：跟同一句的另一格放反了
+    // 6a：跟同一句的另一格放反了
     if (stage.fields.some(f => f.singular === base)) {
       return {
         ok: false, type: 'swapped', state: 'hint',
         tree: [`「${input}」是課本裡的量詞沒錯，它的意思是「${UNIT_ZH[base]}」。你是不是把兩格放反了？${field.food} 要的是「${field.zh}」喔！`]
       };
     }
-    // 5b：用了意思接近但不對的量詞（例如 plates / glasses）→ 不追加提問，原題重答
+    // 6b：用了意思接近但不對的量詞（例如 plates / glasses）→ 不追加提問，原題重答
     return {
       ok: false, type: 'otherUnit', state: 'hint',
       tree: [stage.hints?.synonym
@@ -1389,7 +1405,7 @@ function judgeFill(stage, field, raw) {
     };
   }
 
-  // 錯誤類型 6：拼寫錯誤或亂碼 → 使用本關專屬的提示
+  // 錯誤類型 7：拼寫錯誤或亂碼 → 使用本關專屬的提示
   return { ok: false, type: 'typo', state: 'angry', tree: [stage.hints.spelling] };
 }
 
@@ -1417,8 +1433,8 @@ function judgeBattle(stage, field, raw) {
   return {
     ok: false, type: 'typo', state: 'wolf',
     tree: [
-      `攻擊失敗！大野狼逼近了！「${field.zh}」是 ${field.letter} 開頭的單字，趕快再確認一次拼字反擊！`,
-      `大野狼越來越近了！冷靜下來，${field.letter} 開頭、跟「${field.zh}」有關的課本單字，一個字母一個字母拼拼看！`
+      `攻擊失敗！大野狼逼近了！再檢查一下拼字，「${field.zh}」是 ${field.letter} 開頭的單字，趕快反擊！`,
+      `大野狼越來越近了！冷靜下來再檢查一下拼字：${field.letter} 開頭、跟「${field.zh}」有關的課本單字，一個字母一個字母拼拼看！`
     ]
   };
 }
