@@ -1113,7 +1113,7 @@ const STAGES = [
     title: '關卡 3｜打出正確的容器量詞',
     type: 'fill',
     who: 'Red 確認：',
-    sentence: 'So, you want two {salad} (碗) of fruit salad and three {shake} (杯) of milk shake?',
+    sentence: 'So, you want two {salad} (碗) of fruit salad and three {shake} (玻璃杯) of milk shake?',
     fields: [
       {
         id: 'salad', correct: 'bowls', hint_tw: '碗', food: 'fruit salad', plural: true, remedial: 'slices',
@@ -1121,9 +1121,16 @@ const STAGES = [
         semanticTraps: TRAPS_BOWL
       },
       {
-        id: 'shake', correct: 'cups', hint_tw: '杯', food: 'milk shake', plural: true, remedial: 'slices',
-        synonyms: ['mug'],            // 馬克杯也是「杯」
-        semanticTraps: traps('杯', { glass: '玻璃杯', bottle: '瓶', can: '罐', jar: '罐子', bowl: '碗', tub: '桶', plate: '盤子', bag: '袋' })
+        // 奶昔是冷飲：英文用 glass 裝，cup／mug 通常裝熱飲 → 放進陷阱做語感糾正
+        id: 'shake', correct: 'glasses', hint_tw: '玻璃杯', food: 'milk shake', plural: true, remedial: 'dishes',
+        synonyms: [],                 // 不把 cup 當同義詞，因為要在陷阱裡糾正冷熱飲的差別
+        semanticTraps: {
+          cups: 'cup 通常用來裝熱飲（如咖啡或熱茶）喔！奶昔是冷飲，請依照提示填入『玻璃杯』的英文。',
+          cup: 'cup 通常用來裝熱飲喔！而且前面是 three，請填入『玻璃杯』的複數英文。',
+          mugs: 'mugs 通常用來裝熱飲（如咖啡或熱茶）喔！奶昔是冷飲，請依照提示填入『玻璃杯』的英文。',
+          mug: 'mug 通常用來裝熱飲喔！而且前面是 three，請填入『玻璃杯』的複數英文。',
+          ...traps('玻璃杯', { bottle: '瓶', can: '罐', jar: '罐子', bowl: '碗', tub: '桶', plate: '盤子', bag: '袋' })
+        }
       }
     ],
     hints: {
@@ -1135,7 +1142,7 @@ const STAGES = [
       { speaker: 'tutor', text: '在空格裡打出正確的量詞，再按「送出」。注意前面的數字喔！' }
     ],
     done: [
-      { speaker: 'npc', state: 'happy', text: 'Yummy! Two bowls of fruit salad and three cups of milk shake!', sub: '好吃！兩碗水果沙拉和三杯奶昔！' }
+      { speaker: 'npc', state: 'happy', text: 'Yummy! Two bowls of fruit salad and three glasses of milk shake!', sub: '好吃！兩碗水果沙拉和三杯冰涼的奶昔！' }
     ]
   },
 
@@ -1144,7 +1151,7 @@ const STAGES = [
     title: '關卡 4｜魔王關：容器別搞混！',
     type: 'fill',
     who: 'Red 確認：',
-    sentence: 'Four {pizza} (片) of pizza and two {water} (玻璃杯) of water?',
+    sentence: 'Four {pizza} (片) of pizza and two {tea} (杯) of tea?',
     fields: [
       {
         id: 'pizza', correct: 'slices', hint_tw: '片', food: 'pizza', plural: true, remedial: 'bowls',
@@ -1152,9 +1159,14 @@ const STAGES = [
         semanticTraps: TRAPS_SLICE
       },
       {
-        id: 'water', correct: 'glasses', hint_tw: '玻璃杯', food: 'water', plural: true, remedial: 'dishes',
-        synonyms: [],                 // cup、mug 是「杯子／馬克杯」，不是題目要的「玻璃杯」
-        semanticTraps: traps('玻璃杯', { cup: '杯子', mug: '馬克杯', bottle: '瓶', can: '罐', jar: '罐子', bowl: '碗', slice: '片' })
+        // 茶是熱飲：英文用 cup 裝；glass 通常裝冷飲 → 放進陷阱做語感糾正
+        id: 'tea', correct: 'cups', hint_tw: '杯', food: 'tea', plural: true, remedial: 'slices',
+        synonyms: ['mug'],            // 馬克杯裝熱茶也說得通 → 課外同義詞，不計錯
+        semanticTraps: {
+          glasses: 'glass 通常用來裝冷飲（如果汁或奶昔）喔！茶是熱飲，請依照提示填入『杯』的英文。',
+          glass: 'glass 通常用來裝冷飲喔！而且前面是 two，請填入『杯』的複數英文。',
+          ...traps('杯', { bottle: '瓶', can: '罐', jar: '罐子', bowl: '碗', tub: '桶', plate: '盤子', slice: '片' })
+        }
       }
     ],
     hints: {
@@ -1162,11 +1174,11 @@ const STAGES = [
     },
     intro: [
       { speaker: 'npc', state: 'angry', text: 'I still need more!', sub: '我還要更多！' },
-      { speaker: 'npc', state: 'angry', text: 'Pizza! Water! Pizza and water!', sub: '（我還要四片披薩跟兩玻璃杯的水！）' },
-      { speaker: 'tutor', text: '魔王關！披薩和水的量詞不一樣，還要注意複數喔。' }
+      { speaker: 'npc', state: 'angry', text: 'Pizza! Tea! Pizza and tea!', sub: '（我還要四片披薩跟兩杯熱茶！）' },
+      { speaker: 'tutor', text: '魔王關！披薩和熱茶的量詞不一樣，還要注意複數喔。' }
     ],
     done: [
-      { speaker: 'npc', state: 'happy', text: 'Four slices of pizza and two glasses of water. Yummy!', sub: '四片披薩和兩杯水。好吃！' }
+      { speaker: 'npc', state: 'happy', text: 'Four slices of pizza and two cups of tea. Yummy!', sub: '四片披薩和兩杯熱茶。好吃！' }
     ]
   },
 
@@ -1945,7 +1957,8 @@ const ui = {
           不可數（popcorn, water, flour, salt…）→ <b>How much</b> popcorn do you want?<br>
           可數的容器（bags, bowls, cups…）→ <b>How many</b> bags of candy do you need?<br>
           只有一個用 a：a <b>slice</b> of bread、a <b>bottle</b> of water<br>
-          大於一要變複數：two <b>bowls</b>、three <b>cups</b>、four <b>slices</b>、two <b>glasses</b>（字尾是 s 加 es）
+          大於一要變複數：two <b>bowls</b>、three <b>glasses</b>（字尾是 s 加 es）、four <b>slices</b>、two <b>cups</b><br>
+          冷飲用 <b>glass</b>（奶昔、果汁），熱飲用 <b>cup</b>（茶、咖啡）
         </div>
         ${branch}
       </div>`;
