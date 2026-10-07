@@ -344,6 +344,44 @@
   .timer.warn .timer-num { animation: last-chance 0.4s ease-in-out infinite alternate; }
   .battle-head .mini-red { font-size: 13px; font-weight: 700; color: #c2185b; white-space: nowrap; }
 
+  /* ====== Boss 戰難度選擇 ====== */
+  .diff-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 4px; }
+  .diff-btn { font: inherit; border: 0; border-radius: 12px; padding: 14px 8px; color: #fff; cursor: pointer;
+              display: flex; flex-direction: column; gap: 6px; align-items: center; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+              transition: transform 0.12s; }
+  .diff-btn:hover { transform: translateY(-3px) scale(1.03); }
+  .diff-btn b { font-size: 20px; }
+  .diff-btn span { font-size: 13px; opacity: 0.92; line-height: 1.4; }
+  .diff-btn.diff-easy { background: #3f9b6b; } .diff-btn.diff-normal { background: #d9822b; } .diff-btn.diff-hard { background: #b3242e; }
+  .diff-tag.diff-easy { background: #3f9b6b; }
+  .hint-char { color: #a99aae; }
+
+  /* ====== 死亡畫面按鈕 ====== */
+  .died-count { margin-top: 4px; color: #b98c8c; font-size: 14px; letter-spacing: 2px; }
+  .died-actions { margin-top: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .died-giveup { font: inherit; background: none; border: 0; color: #c9a7a7; text-decoration: underline; cursor: pointer; font-size: 14px; }
+
+  /* ====== VHS 倒轉回歸 ====== */
+  #rewind-overlay { position: absolute; inset: 0; z-index: 11; display: none; overflow: hidden; }
+  #rewind-overlay.show { display: block; }
+  #game.rewinding #stage, #game.rewinding #dialogue { filter: sepia(0.5) hue-rotate(-30deg) invert(80%); }
+  #game.rewinding #stage { animation: vhs-jitter 0.18s steps(2) infinite; }
+  .rw-noise { position: absolute; inset: 0; opacity: 0.35; mix-blend-mode: screen;
+              background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 3px),
+                          repeating-linear-gradient(90deg, rgba(255, 0, 0, 0.06) 0 2px, rgba(0, 255, 255, 0.06) 2px 4px);
+              animation: vhs-noise 0.12s steps(3) infinite; }
+  .rw-bar { position: absolute; left: 0; right: 0; height: 26px; background: rgba(255, 255, 255, 0.28); filter: blur(2px);
+            animation: vhs-bar 0.9s linear infinite; }
+  .rw-label { position: absolute; top: 60px; left: 22px; color: #ff2d3c; font: 900 30px/1 "Courier New", monospace;
+              letter-spacing: 3px; text-shadow: 2px 0 #00e5ff, -2px 0 #ff00aa; animation: rw-blink 0.5s steps(2) infinite; }
+  .rw-time { position: absolute; top: 64px; right: 26px; color: #fff; font: 700 20px/1 "Courier New", monospace; text-shadow: 2px 0 #ff00aa; }
+  #rewind-frame { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(1.4); }
+  #rewind-frame .situation { filter: drop-shadow(3px 0 #ff00aa) drop-shadow(-3px 0 #00e5ff); }
+  @keyframes vhs-jitter { 50% { translate: -6px 2px; } }
+  @keyframes vhs-noise { 33% { background-position: 0 2px, 3px 0; } 66% { background-position: 0 -2px, -3px 0; } }
+  @keyframes vhs-bar { from { top: -30px; } to { top: 100%; } }
+  @keyframes rw-blink { 50% { opacity: 0.25; } }
+
   /* ====== Boss 戰盲打 ====== */
   .diff-tag { font-size: 12px; font-weight: 800; color: #fff; border-radius: 6px; padding: 1px 8px; white-space: nowrap; }
   .diff-normal { background: #3f7d5b; } .diff-hard { background: #d9822b; } .diff-hell { background: #8f1f28; }
@@ -387,6 +425,9 @@
   .fx-dmg small { display: block; font-size: 24px; letter-spacing: 3px; margin-top: 2px; }
   @media (max-width: 600px) {
     .atk-zh { font-size: 26px; }
+    .diff-pick { grid-template-columns: 1fr; }
+    .diff-btn { padding: 10px 8px; }
+    .rw-label { font-size: 22px; }
     #type-line { font-size: 22px; gap: 4px 3px; }
     .tc { width: 13px; height: 26px; line-height: 26px; border-bottom-width: 3px; }
     .tc.gap { width: 12px; }
@@ -863,7 +904,21 @@
     <div class="died-band">
       <div class="died-title">YOU DIED</div>
       <div class="died-sub" id="died-sub"></div>
+      <div class="died-count" id="died-count"></div>
+      <div class="died-actions">
+        <button class="btn" type="button" id="retry-btn">🔄 再次挑戰</button>
+        <button class="died-giveup" type="button" id="giveup-btn">放棄，看結算</button>
+      </div>
     </div>
+  </div>
+
+  <!-- VHS 倒轉回歸：把這關剛才的畫面往回倒帶 -->
+  <div id="rewind-overlay">
+    <div class="rw-noise"></div>
+    <div class="rw-bar"></div>
+    <div class="rw-label">⏪ REWIND</div>
+    <div class="rw-time" id="rw-time"></div>
+    <div id="rewind-frame"></div>
   </div>
 
   <!-- 結算畫面 -->
@@ -887,17 +942,19 @@ function toEmbedUrl(url) {
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : url;
 }
 
-// Boss 戰：限時與愛心
-// Boss 戰難度：由 grandmaAffection（Grandma 好感度）決定；倒數只在作答時進行
-//   creep：大野狼往前逼近的速度（px／秒）；penalty：打錯一個字母扣幾秒
+// Boss 戰難度（開打前由玩家選）：倒數是「每一招各自計時」，擊中一招就重置
+//   time：每招秒數；creep：大野狼逼近速度（px／秒）；penalty：打錯一個字母扣幾秒；hint：顯示每個字的頭尾字母
 const DIFFICULTY = {
-  normal: { name: '普通', time: 45, creep: 3, penalty: 0 },
-  hard: { name: '困難', time: 30, creep: 5, penalty: 0 },
-  hell: { name: '地獄', time: 20, creep: 7, penalty: 2 }
+  easy: { name: '簡單 Easy', time: 20, creep: 4, penalty: 0, hint: true, desc: '每招 20 秒・提示每個字的頭尾字母' },
+  normal: { name: '普通 Normal', time: 15, creep: 6, penalty: 0, hint: false, desc: '每招 15 秒・全底線盲打' },
+  hard: { name: '困難 Hard', time: 10, creep: 9, penalty: 2, hint: false, desc: '每招 10 秒・打錯一個字母扣 2 秒' }
 };
-const pickDifficulty = a => (a >= 80 ? 'normal' : a >= 40 ? 'hard' : 'hell');
-const RED_MAX_HEARTS = 3;          // 小紅帽的愛心：扣光後再扣（第 4 次）就失敗
-const WRONG_KEYS_PER_HEART = 3;    // 盲打時每打錯幾個字母扣 1 顆愛心
+const RED_MAX_HEARTS = 3;          // 小紅帽愛心條的格數（目前盲打戰不扣愛心，只靠倒數判定）
+
+// 死亡次數：Boss 戰倒數歸零、或生命值歸零都算一次；結算稱號依它決定
+let deathCount = 0;
+// 「再次挑戰」時的倒轉音效：把檔案放在 assets 資料夾；找不到就改用程式合成的倒帶聲
+const REWIND_SOUND_URL = 'assets/re0-respawn.mp3';
 
 // Boss 戰音樂：把音樂檔放在 index.html 同一個資料夾，檔名改成這裡寫的名字即可（mp3 / ogg / m4a 都行）
 // 也可以填完整網址；留空字串就不播音樂
@@ -914,8 +971,10 @@ let soundOn = true;
 //   synonym     用錯字義（踩到語意陷阱：意思跟中文提示對不上，例如『片』填 loaf、『鹽』填 sugar）
 let errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
 
-// Grandma 好感度（0～100）：關卡 3、4 選錯容器或單複數各扣 20，決定 Boss 戰難度
-let grandmaAffection = 100;
+// 小紅帽生命值（0～RED_MAX_HP 顆心）：關卡 1～4 與追加題每答錯一次扣 1；扣到 0 就算死亡
+//   課外但正確的單字（textbookOnly）不算答錯、不扣；Boss 戰只看倒數，不扣生命值
+const RED_MAX_HP = 5;
+let redHp = RED_MAX_HP;
 const errorTotal = () => Object.values(errorStats).reduce((a, b) => a + b, 0);
 
 /* =========================================================
@@ -1167,11 +1226,51 @@ const sfx = {
     osc.start();
     osc.stop(c.currentTime + dur + 0.05);
   },
-  swish() { this.blip(900, 1700, 0.07, 'triangle', 0.1); },          // 打對一個字母：輕快揮擊
-  thud() { this.blip(150, 60, 0.18, 'square', 0.16); },              // 打錯：低沉的「喀」
-  critical() {                                                     // 完成一擊：爆擊
+  rewind() { this.blip(1500, 160, 1.4, 'sawtooth', 0.1); this.blip(900, 90, 1.4, 'square', 0.05); },   // 倒帶聲
+  // 一小段白噪音，經過濾波器（type：bandpass 清脆、lowpass 悶）—— 打擊感的「啪」靠它
+  noise(dur, freq, type = 'bandpass', vol = 0.25, q = 1.2) {
+    if (!soundOn || !this.ctx) return;
+    const c = this.ctx;
+    if (!this.noiseBuf) {
+      this.noiseBuf = c.createBuffer(1, c.sampleRate * 0.5, c.sampleRate);
+      const d = this.noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = c.createBufferSource();
+    src.buffer = this.noiseBuf;
+    const filter = c.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.value = freq;
+    filter.Q.value = q;
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(vol, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+    src.connect(filter).connect(gain).connect(c.destination);
+    src.start();
+    src.stop(c.currentTime + dur + 0.02);
+  },
+  /*
+   * 打對一個字母：三層疊起來的打擊聲
+   *   低頻重擊（咚）＋短促噪音（啪）＋叮聲；combo 是連續打對幾個，叮聲隨連擊往上升（最多一個八度）
+   */
+  hit(combo = 0) {
+    this.blip(190, 50, 0.1, 'sine', 0.45);                         // 咚：份量
+    this.noise(0.035, 3200, 'bandpass', 0.35, 0.9);                // 啪：接觸瞬間
+    const step = Math.min(combo, 12);
+    this.blip(660 * Math.pow(2, step / 12), 990 * Math.pow(2, step / 12), 0.06, 'triangle', 0.09);   // 叮：連擊音階
+  },
+  // 打錯：悶住的噪音＋破音方波，低沉的「喀」
+  thud() {
+    this.noise(0.14, 380, 'lowpass', 0.45, 0.8);
+    this.blip(120, 45, 0.2, 'square', 0.18);
+    this.blip(127, 48, 0.2, 'sawtooth', 0.08);                     // 稍微走音，聽起來像破掉
+  },
+  // 完成一擊：大爆炸＋重低音＋金屬尾音
+  critical() {
+    this.noise(0.55, 900, 'lowpass', 0.6, 0.7);
+    this.blip(140, 32, 0.6, 'sine', 0.55);
     this.blip(260, 50, 0.45, 'sawtooth', 0.2);
-    this.blip(1200, 300, 0.3, 'square', 0.07);
+    this.blip(1500, 400, 0.35, 'square', 0.06);
   },
 
   correct() {
@@ -1529,9 +1628,6 @@ const SHELF_ITEMS = {
   box: { icon: 'box', emoji: '📦' }, slice: { icon: 'pizzaSlice', emoji: '🍕' },
   flour: { icon: 'flour', emoji: '🌾' }, salt: { icon: 'salt', emoji: '🧂' }, sugar: { icon: 'sugar', emoji: '🍬' }
 };
-const GRANDMA_MAX_FAVOR = 5;
-
-   // Grandma 好感度（關卡 3、4 選錯容器或單複數就扣 1）
 
 /*
  * 追加提問題庫：忘記加 s 時，動態 unshift() 插到佇列最前面，答對才回到主線原題
@@ -1880,7 +1976,9 @@ function freshGame() {
     queue: [],             // 關卡佇列
     remedialUsed: {},      // 已經觸發過追加提問的欄位（同一格只追加一次，避免無限插題）
     battle: null,          // Boss 戰狀態 { timeLeft, hearts, timer }
-    failed: false,         // Boss 戰失敗（時間到或愛心用完）
+    failed: false,         // 在死亡畫面按了「放棄，看結算」
+    stageHistory: [],      // 這一關的對話與錯誤圖片紀錄（倒轉回歸時倒著播放）
+    checkpoint: null,      // 這一關開始時的狀態（生命值），死亡重試時恢復
     attempts: {}           // 每一格、每一種錯誤各錯幾次（決定提示追問到第幾層）
   };
 }
@@ -2296,6 +2394,7 @@ const ui = {
   },
 
   setScene(name) {
+    this.scene = name;
     $('stage').className = 'scene-' + name;
     $('scene-label').textContent = '場景：' + this.SCENE_NAME[name];
   },
@@ -2363,13 +2462,11 @@ const ui = {
     $('kitchen-shelf').classList.toggle('active', on);
   },
 
-  // Grandma 好感度（null 隱藏）
-  setFavor(n) {
+  // 小紅帽生命值（n = 剩幾顆心；null 隱藏）
+  setLife(n) {
     const el = $('info-favor');
     el.hidden = n === null;
-    // n 是 0～100 的好感度，畫成 5 顆愛心（每 20 一顆）
-    const h = Math.round(n / 20);
-    if (n !== null) el.innerHTML = `<span class="fav-long">Grandma 好感度</span><span class="fav-short">好感</span> ${'♥'.repeat(h)}${'♡'.repeat(GRANDMA_MAX_FAVOR - h)}`;
+    if (n !== null) el.innerHTML = `<span class="fav-long">生命值</span><span class="fav-short">HP</span> ${'♥'.repeat(n)}${'♡'.repeat(RED_MAX_HP - n)}`;
   },
 
   /**
@@ -2379,7 +2476,9 @@ const ui = {
   craftFx(kind, item, food, caption, sub) {
     const box = $('craft-fx');
     // 動態組合「食物 × 容器」的情境圖（Boss 戰沒有食物，只畫道具）
-    box.querySelector('.craft-icons').replaceChildren(renderSituation(food, item));
+    const sit = renderSituation(food, item);
+    box.querySelector('.craft-icons').replaceChildren(sit);
+    game.stageHistory.push({ t: 'img', html: sit.outerHTML, caption });   // 錯誤／正確的組合圖也記進歷史
     box.querySelector('.craft-caption').textContent = caption;
     box.querySelector('.craft-sub').textContent = sub || '';
     box.className = kind;
@@ -2410,11 +2509,6 @@ const ui = {
     box.classList.toggle('warn', t <= 10);
   },
 
-  // 攻擊失敗：大野狼往前逼近一步（最多三步）
-  approach(steps) {
-    $('npc').style.translate = `${-45 * Math.min(steps, 3)}px 0`;
-  },
-
   // 命中：大野狼閃光後退，逼近的距離歸零
   hitNpc() {
     const el = $('npc');
@@ -2440,6 +2534,9 @@ const ui = {
     sp.className = line.speaker === 'red' ? '' : line.speaker;
     this.focusSpeaker(line.speaker);
 
+    // 記進這一關的歷史，死亡倒轉時倒著播
+    game.stageHistory.push({ t: 'line', speaker: line.speaker, text: line.text.replace(/<\/?strong>/g, ''),
+      scene: this.scene, char: this.npcChar, state: this.npcState });
     this.currentLine = line;
     this.segs = toSegments(line.text);
     this.total = this.segs.reduce((n, sg) => n + sg.t.length, 0);   // 不含 <strong> 標籤本身
@@ -2495,7 +2592,7 @@ const ui = {
     fx.clear();
     $('game').classList.remove('danger', 'hell');
     this.showShelf(null);
-    this.setFavor(null);
+    this.setLife(null);
     $('craft-fx').className = '';
     this.setHp(null);
     this.setHearts(null);
@@ -2504,6 +2601,23 @@ const ui = {
     $('red').classList.remove('down');
     $('npc').classList.remove('lunge');
     $('npc').style.translate = '';
+    clearInterval(this.rewindTimer);
+    $('rewind-overlay').classList.remove('show');
+    $('game').classList.remove('rewinding');
+  },
+
+  // 倒轉回歸的一格畫面：還原當時的場景、立繪、說話者與台詞（不唸語音、不打字），圖片放中央
+  showFrame(f) {
+    if (!f) return;
+    if (f.t === 'img') { $('rewind-frame').innerHTML = f.html; return; }
+    $('rewind-frame').innerHTML = '';
+    if (f.scene) this.setScene(f.scene);
+    this.setNpc(f.char, f.state);
+    $('speaker').textContent = this.speakerName(f.speaker);
+    $('speaker').className = f.speaker === 'red' ? '' : f.speaker;
+    this.focusSpeaker(f.speaker);
+    $('text').textContent = f.text;
+    $('sub').textContent = '';
   },
 
   // 面板：作答時才出現，送出後立刻 display:none
@@ -2595,12 +2709,26 @@ const ui = {
     this.setShelfActive(!picked);
   },
 
+  // Boss 戰開打前：難度選擇
+  renderDifficulty(stage) {
+    this.showPanel(`
+      <div class="panel-title">${stage.title}選擇難度</div>
+      <div class="diff-pick">
+        ${Object.entries(DIFFICULTY).map(([k, d]) => `
+          <button class="diff-btn diff-${k}" type="button" data-diff="${k}">
+            <b>${d.name}</b><span>${d.desc}</span>
+          </button>`).join('')}
+      </div>
+      <div class="pick-note">每擊中一招，倒數就重置；任何一招時間歸零就失敗</div>`, true);
+  },
+
   /*
    * Boss 戰盲打面板：大字中文提示＋每個字母一條底線（不顯示英文、沒有輸入框）
    *   打字由 document 的 keydown 全局監聽（觸控裝置另外顯示一排字母按鈕）
    */
   renderBattle(stage) {
     const bt = game.battle;
+    const d = DIFFICULTY[bt.diff];
     const total = bt.attacks.length;
     const atk = bt.attacks[bt.idx];
     const hp = total - bt.idx;
@@ -2610,31 +2738,41 @@ const ui = {
       ? `<div class="vkb">${['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].map(row =>
           `<div class="vkb-row">${[...row].map(k => `<button class="vk" type="button" data-key="${k}">${k}</button>`).join('')}</div>`).join('')}</div>`
       : '';
+    const note = d.hint ? '灰色字母是提示，也要打出來喔' : d.penalty ? `打錯一個字母扣 ${d.penalty} 秒！` : '全底線盲打，靠記憶拼出來！';
     this.showPanel(`
       <div class="battle-head">
         <span class="panel-title">${stage.title}第 ${bt.idx + 1} 擊 / ${total}</span>
-        <span class="diff-tag diff-${bt.diff}">${DIFFICULTY[bt.diff].name}</span>
-        <span class="mini-red">小紅帽 ${'♥'.repeat(bt.hearts)}${'♡'.repeat(RED_MAX_HEARTS - bt.hearts)}</span>
+        <span class="diff-tag diff-${bt.diff}">${d.name}</span>
         <span class="mini-hp">大野狼 HP ${wolfHp}</span>
       </div>
       <div class="timer"><span>⏱</span><div class="timer-bar"><div class="timer-fill"></div></div><span class="timer-num"></span></div>
       <div class="atk-zh">【${atk.zh}】</div>
       <div id="type-line"></div>
-      <div class="pick-note" id="type-note">${touch ? '點下方字母' : '直接用鍵盤打字'}，不用按空白鍵${DIFFICULTY[bt.diff].penalty ? `｜地獄難度：打錯一個字母扣 ${DIFFICULTY[bt.diff].penalty} 秒！` : ''}</div>
+      <div class="pick-note" id="type-note">${touch ? '點下方字母' : '直接用鍵盤打字'}，不用按空白鍵｜${note}</div>
       ${keyboard}`, true);
     this.updateTyping();
     this.updateTimer();
   },
 
-  // 依目前進度重畫底線：打出的字母金色高光（.typed-char），沒打的維持底線（.untyped-char）
+  /*
+   * 依目前進度重畫底線
+   *   打出的字母：金色高光（.typed-char）
+   *   Easy 的提示字母（每個字的頭尾）：還沒打時顯示灰色字（.hint-char）
+   *   其他：只有底線（.untyped-char）
+   */
   updateTyping(hitIndex = -1) {
     const bt = game.battle;
     const en = bt.attacks[bt.idx].en;
+    const hints = new Set();
+    if (DIFFICULTY[bt.diff].hint) {
+      let start = 0;
+      for (const w of en.split(' ')) { hints.add(start); hints.add(start + w.length - 1); start += w.length + 1; }
+    }
     $('type-line').innerHTML = [...en].map((ch, i) => {
       if (ch === ' ') return '<span class="tc gap"></span>';
       const done = i < bt.pos;
-      const cls = done ? 'typed-char' : 'untyped-char';
-      return `<span class="tc ${cls}${i === bt.pos ? ' cursor' : ''}${i === hitIndex ? ' pop' : ''}">${done ? ch : '&nbsp;'}</span>`;
+      const cls = done ? 'typed-char' : hints.has(i) ? 'hint-char' : 'untyped-char';
+      return `<span class="tc ${cls}${i === bt.pos ? ' cursor' : ''}${i === hitIndex ? ' pop' : ''}">${done || hints.has(i) ? ch : '&nbsp;'}</span>`;
     }).join('');
   },
 
@@ -2646,14 +2784,7 @@ const ui = {
     el.classList.add('miss');
   },
 
-  // 更新面板上的小紅帽愛心
-  updateBattleHud() {
-    const el = document.querySelector('#panel .mini-red');
-    const bt = game.battle;
-    if (el) el.textContent = `小紅帽 ${'♥'.repeat(bt.hearts)}${'♡'.repeat(RED_MAX_HEARTS - bt.hearts)}`;
-  },
-
-  // 地獄難度扣秒：倒數旁跳出「-2s」
+  // Hard 難度扣秒：倒數旁跳出紅色「-2s」
   timerPenalty(sec) {
     const box = document.querySelector('#panel .timer');
     if (!box) return;
@@ -2666,7 +2797,8 @@ const ui = {
 
   /*
    * 結算畫面
-   *   成就等級：errorStats 總和 0 → 傳說級；1～3 → 優秀特務；4 以上 → 見習生
+   *   成就等級（依死亡次數 deathCount）：0 → 傳說級；1～3 → 優秀特務；4 以上 → 見習生＋多練拼寫的提醒
+   *   在死亡畫面按「放棄，看結算」→ 挑戰失敗
    *   精準推播：看哪一類錯最多（平手依 plural → uncountable → spelling → synonym 的順序）
    *     plural      → 均一：名詞複數與容器量詞規則
    *     uncountable → 均一：可數與不可數名詞判斷
@@ -2680,8 +2812,8 @@ const ui = {
     const failed = game.failed;
     let badge;
     if (failed) badge = { cls: 'novice', text: '💀 挑戰失敗', en: 'Mission Failed' };
-    else if (total === 0) badge = { cls: 'legend', text: '🏆 傳說級外送員', en: 'Legendary Courier' };
-    else if (total >= 1 && total <= 3) badge = { cls: 'agent', text: '🥇 優秀特務', en: 'Excellent Agent' };
+    else if (deathCount === 0) badge = { cls: 'legend', text: '🏆 傳說級外送員', en: 'Legendary Courier' };
+    else if (deathCount <= 3) badge = { cls: 'agent', text: '🥇 優秀特務', en: 'Excellent Agent' };
     else badge = { cls: 'novice', text: '🥉 見習生', en: 'Novice Learner' };
 
     const LABEL = { plural: '忘記加 s', uncountable: '可數／不可數', spelling: '拼字錯誤', synonym: '用錯字義' };
@@ -2725,10 +2857,17 @@ const ui = {
         <button class="btn alt" type="button" id="again-btn">再玩一次</button>`;
     }
 
+    // 死亡 4 次以上：提醒多練拼寫，並一定附上打字機按鈕
+    const tooManyDeaths = !failed && deathCount >= 4;
+    if (tooManyDeaths) {
+      branch = `<div class="advice">大野狼吃得好飽啊！用打字機再多練習拼寫吧！</div>`
+        + (branch.includes('unlock-btn') ? branch : unlock + branch);
+    }
+
     $('result-screen').innerHTML = `
       <div class="result-card">
         <h2>${failed ? '挑戰失敗……' : '任務完成！'}</h2>
-        <div>${failed ? `被大野狼抓住了！目前總共答錯 ${total} 次，看完推薦再挑戰一次吧` : `獲得成就（總共答錯 ${total} 次）`}</div>
+        <div>${failed ? `放棄挑戰了……死亡 ${deathCount} 次、答錯 ${total} 次，看完推薦再挑戰一次吧` : `獲得成就（死亡 ${deathCount} 次・答錯 ${total} 次）`}</div>
         <div class="badge ${badge.cls}">${badge.text}<small>${badge.en}</small></div>
         <div class="stats">${stats}</div>
         <div class="review">
@@ -2764,37 +2903,33 @@ function startLevel() {
     return;
   }
   lv.introDone = true;
-  // 有層架設定的關卡（3～5）才顯示層架；關卡 3 開始時顯示 Grandma 好感度
+  // 檢查點：清空這一關的歷史，記下開始時的生命值（死亡重試時恢復）
+  game.stageHistory = [];
+  game.checkpoint = { hp: redHp };
+  // 有層架設定的關卡（3、4）才顯示層架；Boss 戰以外都顯示生命值
   ui.showShelf(lv.def.shelf || null);
-  ui.setFavor(lv.def.type === 'craft' ? grandmaAffection : null);
-  let intro = lv.def.intro;
-  // 進 Boss 戰：依好感度決定難度，從題庫隨機抽 3 題
-  if (lv.def.type === 'battle') {
-    const diff = pickDifficulty(grandmaAffection);
-    const d = DIFFICULTY[diff];
-    const pool = lv.def.attackPool.slice().sort(() => Math.random() - 0.5);
-    game.battle = {
-      diff, limit: d.time, timeLeft: d.time, hearts: RED_MAX_HEARTS, timer: null,
-      attacks: pool.slice(0, 3),   // 本場的 3 道攻擊指令
-      idx: 0,                      // 第幾題
-      pos: 0,                      // 這題打到英文字串的第幾個字元
-      wrongKeys: 0,                // 本場打錯的字母總數（每 WRONG_KEYS_PER_HEART 個扣 1 顆愛心）
-      missThis: false,             // 這題打錯過沒（同一題只計一次拼字錯誤）
-      creep: 0                     // 大野狼已經逼近幾 px
-    };
-    // 困難以上：紅色警戒濾鏡；地獄再加強
-    $('game').classList.toggle('danger', diff !== 'normal');
-    $('game').classList.toggle('hell', diff === 'hell');
-    const warn = { normal: '好感度還不錯，是普通難度！', hard: '剛才惹 Grandma 生氣了……困難難度！大野狼逼近得更快！', hell: 'Grandma 氣炸了！地獄難度！打錯一個字母就扣 2 秒！' }[diff];
-    intro = intro.slice(0, -1).concat([
-      { speaker: 'tutor', text: `${warn}（倒數 ${d.time} 秒）` },
-      intro[intro.length - 1]
-    ]);
-  }
-  ui.play(intro, () => {
-    if (lv.def.type === 'battle') ui.setHearts(game.battle.hearts);
-    openPanel();
-  });
+  ui.setLife(lv.def.type !== 'battle' ? redHp : null);
+  // Boss 戰：先不決定難度，開場劇情播完跳出難度選擇
+  if (lv.def.type === 'battle') game.battle = null;
+  ui.play(lv.def.intro, openPanel);
+}
+
+// 選好難度：抽 3 道不重複的攻擊，第一招開始計時
+function chooseDifficulty(diff) {
+  const d = DIFFICULTY[diff];
+  const pool = D().attackPool.slice().sort(() => Math.random() - 0.5);
+  game.battle = {
+    diff, limit: d.time, timeLeft: d.time, timer: null,
+    attacks: pool.slice(0, 3),   // 本回合的 3 道攻擊指令
+    idx: 0,                      // 第幾題
+    pos: 0,                      // 這題打到英文字串的第幾個字元
+    missThis: false,             // 這題打錯過沒（同一題只計一次拼字錯誤）
+    combo: 0,                    // 連續打對幾個字母（打擊音效的音高跟著升）
+    creep: 0                    // 大野狼已經逼近幾 px
+  };
+  $('game').classList.toggle('danger', diff === 'hard');   // 困難：紅色警戒濾鏡
+  closePanel();
+  ui.play([{ speaker: 'tutor', text: `${d.name}！每一招限時 ${d.time} 秒，開打！` }], openPanel);
 }
 
 /*
@@ -2816,7 +2951,7 @@ function startBattleTimer() {
     $('npc').style.translate = `${-bt.creep}px 0`;
     if (bt.timeLeft <= 0) {
       closePanel();
-      failBattle('time');
+      die('time');
     }
   }, 100);
 }
@@ -2829,29 +2964,35 @@ function stopBattleTimer() {
 }
 
 /*
- * Boss 戰失敗（時間到或愛心用完）：
- *   大野狼衝到小紅帽面前 → 小紅帽倒下 → YOU DIED → 依目前的 errorStats 結算推薦影片
+ * 死亡：deathCount +1，播失敗演出，跳出 YOU DIED（再次挑戰／放棄看結算）
+ *   time  ：Boss 戰某一招倒數歸零 → 大野狼撲過來
+ *   hp    ：生命值歸零（關卡 3、4 由 Grandma 把小紅帽趕出廚房，其他關卡是小紅帽體力耗盡）
  */
-function failBattle(reason) {
+function die(reason) {
   stopBattleTimer();
-  game.failed = true;
   setState(STATES.STORY);
   ui.queue = [];
   ui.onQueueDone = null;
-  music.fadeOut(1500);
-  ui.showShelf(null);
-  ui.setHp(null);
-  ui.setHearts(null);
-  ui.setNpc(undefined, 'wolf');
+  deathCount++;
+  ui.setShelfActive(false);
 
-  // 大野狼衝到小紅帽面前：算出兩個立繪之間的距離
-  const red = $('red').getBoundingClientRect();
-  const npc = $('npc');
-  const nr = npc.getBoundingClientRect();
-  npc.classList.add('lunge');
-  npc.style.translate = `${-(nr.left - red.right) - nr.width * 0.35}px 0`;
-  ui.quake();
-  ui.typeLine({ speaker: 'npc', text: 'I want a kid like you!', sub: reason === 'time' ? '時間到了！大野狼撲了過來！' : '愛心用完了！大野狼撲了過來！' });
+  if (reason === 'time') {
+    music.fadeOut(1500);
+    ui.setHp(null);
+    ui.setNpc(undefined, 'wolf');
+    // 大野狼衝到小紅帽面前：算出兩個立繪之間的距離
+    const red = $('red').getBoundingClientRect();
+    const npc = $('npc');
+    const nr = npc.getBoundingClientRect();
+    npc.classList.add('lunge');
+    npc.style.translate = `${-(nr.left - red.right) - nr.width * 0.35}px 0`;
+    ui.quake();
+    ui.typeLine({ speaker: 'npc', text: 'I want a kid like you!', sub: '時間到了！大野狼撲了過來！' });
+  } else {
+    ui.quake();
+    if (D().type === 'craft') ui.typeLine({ speaker: 'npc', state: 'angry', text: '夠了！妳根本不會裝食物！給我滾出廚房！', sub: '小紅帽的生命值歸零了……' });
+    else ui.typeLine({ speaker: 'narr', text: '答錯太多次，小紅帽體力耗盡，倒下了……', sub: '生命值歸零了……' });
+  }
 
   const round = game;
   setTimeout(() => {
@@ -2860,15 +3001,100 @@ function failBattle(reason) {
   }, 500);
   setTimeout(() => {
     if (game !== round) return;
-    $('died-sub').textContent = reason === 'time' ? '時間到了……' : '愛心用完了……';
+    $('died-sub').textContent = reason === 'time' ? '時間到了……' : '生命值歸零了……';
+    $('died-count').textContent = `第 ${deathCount} 次死亡`;
     $('you-died').classList.add('show');
     speech.stop();
   }, 1300);
-  setTimeout(() => {
-    if (game !== round) return;
+}
+
+// 倒轉音效：先播 assets 裡的 mp3，播不出來（檔案不存在等）就改用合成的倒帶聲
+function playRewindSound() {
+  if (!soundOn) return;
+  let fallback = false;
+  const useSynth = () => { if (!fallback) { fallback = true; sfx.rewind(); } };
+  const a = new Audio(REWIND_SOUND_URL);
+  a.addEventListener('error', useSynth);
+  a.play().catch(useSynth);
+}
+
+/*
+ * VHS 倒轉演出：把這一關的歷史（台詞、錯誤圖片）反過來，每 100 毫秒換一格往回倒
+ *   畫面套錄影帶倒轉濾鏡＋雜訊，角落閃「⏪ REWIND」；播完移除覆蓋層
+ */
+function playRewindCinematic() {
+  return new Promise(resolve => {
+    const frames = game.stageHistory.slice(-60).reverse();
+    while (frames.length < 12) frames.push(null);     // 歷史太短也至少倒 1.2 秒
+    clearInterval(ui.typeTimer);
+    ui.typing = false;
+    ui.hidePanel();
+    $('dialogue').classList.remove('has-icon');
     $('you-died').classList.remove('show');
-    showResult();
-  }, 4600);
+    $('rewind-overlay').classList.add('show');
+    $('game').classList.add('rewinding');
+    playRewindSound();
+    let i = 0;
+    clearInterval(ui.rewindTimer);
+    ui.rewindTimer = setInterval(() => {
+      if (i >= frames.length) {
+        clearInterval(ui.rewindTimer);
+        setTimeout(() => {
+          $('rewind-overlay').classList.remove('show');
+          $('game').classList.remove('rewinding');
+          $('rewind-frame').innerHTML = '';
+          resolve();
+        }, 250);
+        return;
+      }
+      $('rw-time').textContent = `◀◀ 00:${String(frames.length - i).padStart(2, '0')}`;
+      ui.showFrame(frames[i++]);
+    }, 100);
+  });
+}
+
+/*
+ * 回到檢查點
+ *   關卡 1～4：清空紀錄、生命值恢復成這關開始時的數值，從第一句開場對話重來
+ *   關卡 5   ：跳回難度選擇，之後重新抽 3 道新題目
+ */
+function restartFromCheckpoint() {
+  const cur = game.queue[0];
+  const fresh = makeLevel(cur.def, cur.main);
+  // 這一關登記過的追加題也一併清掉，重來時漏 s 會重新登記
+  Object.keys(game.remedialUsed).filter(k => k.startsWith(cur.def.title + '-')).forEach(k => delete game.remedialUsed[k]);
+  game.queue[0] = fresh;
+  redHp = game.checkpoint ? game.checkpoint.hp : redHp;
+  game.battle = null;
+  fx.clear();
+  $('craft-fx').className = '';
+  $('red').classList.remove('down');
+  $('npc').classList.remove('lunge');
+  $('npc').style.translate = '';
+  $('game').classList.remove('danger');
+  if (cur.def.type === 'battle') {
+    fresh.introDone = true;
+    game.stageHistory = [];
+    ui.setScene('battle');
+    ui.setNpc('grandma', 'wolf');
+    ui.setHp(3);
+    music.play();
+    setState(STATES.STORY);
+    ui.play([{ speaker: 'tutor', text: '時間倒轉回來了……這次換一組新題目，選好難度再戰一次！' }], openPanel);
+    return;
+  }
+  startLevel();
+}
+
+function retryAfterDeath() {
+  const round = game;
+  playRewindCinematic().then(() => { if (game === round) restartFromCheckpoint(); });
+}
+
+function giveUpAfterDeath() {
+  $('you-died').classList.remove('show');
+  game.failed = true;
+  showResult();
 }
 
 // 進入作答節點：面板出現
@@ -2876,7 +3102,11 @@ function openPanel() {
   if (!setState(STATES.ANSWER)) return;
   const stage = D();
   if (stage.type === 'choice') ui.renderChoice(stage);
-  else if (stage.type === 'battle') { ui.renderBattle(stage); startBattleTimer(); }
+  else if (stage.type === 'battle') {
+    if (!game.battle) { ui.renderDifficulty(stage); return; }   // 還沒選難度
+    ui.renderBattle(stage);
+    startBattleTimer();
+  }
   else if (stage.type === 'craft') ui.renderCraft(stage);
   else ui.renderFill(stage);
 }
@@ -2892,22 +3122,18 @@ function closePanel() {
 /*
  * 答錯：errorStats 依類型 +1，換 AI 家教講提示，點一下後面板再出現，原題重答
  *   忘記加 s 且這格有追加題 → 先記在這關的 pending，等這關通過後才插進佇列
- *   課外但正確的單字（textbookOnly）→ 只提醒：不計錯、Boss 戰不扣愛心
+ *   課外但正確的單字（textbookOnly）→ 只提醒：不計錯、不扣生命值
+ *   其他答錯 → 生命值 -1，扣到 0 就死亡
  */
 function giveHint(res, key) {
-  const counted = !!ERROR_CATEGORY[res.type];
   countError(res.type);
+  if (ERROR_CATEGORY[res.type] && D().type !== 'battle') {
+    redHp = Math.max(0, redHp - 1);
+    ui.setLife(redHp);
+    if (redHp <= 0) { die('hp'); return; }
+  }
   const tries = bumpAttempt(key);
   ui.setNpc(undefined, res.state);
-  // Boss 戰攻擊失敗：畫面震動、大野狼逼近一步、小紅帽扣一顆愛心；愛心已經扣光就失敗
-  if (D().type === 'battle' && counted) {
-    const bt = game.battle;
-    if (bt.hearts === 0) { failBattle('hearts'); return; }
-    bt.hearts--;
-    ui.setHearts(bt.hearts);
-    ui.quake();
-    ui.approach(++L().approach);
-  }
   // 有整段劇情（第二關的喜劇反應）就播劇情，否則由 AI 家教講提示樹的對應那一句
   if (res.scenes) {
     const scene = res.scenes[Math.min(tries, res.scenes.length) - 1].map(l => ({ ...l }));
@@ -2947,7 +3173,7 @@ function showResult() {
   setState(STATES.RESULT);
   $('game').classList.remove('danger', 'hell');
   ui.showShelf(null);
-  ui.setFavor(null);
+  ui.setLife(null);
   speech.stop();
   ui.updateInfo();
   ui.renderResult();
@@ -2973,7 +3199,7 @@ function handleChoice(choice) {
  *      → judgeContainer() 判斷容器
  *      → 播放合成動畫卡片（對：綠光＋叮咚；錯：食物被遮住、紅框抖動）
  *      → 對：Grandma 滿意，面板出現單複數按鈕
- *        錯：Grandma 奧客吐槽、扣好感度、計入錯誤，回到選容器
+ *        錯：Grandma 奧客吐槽、扣生命值、計入錯誤，回到選容器
  *   第 2 步 handleFormPick：學生選單複數（例：glass / glasss / glasses）
  *      → 交給原本的 judgeFill()，單複數錯就走原本的提示與追加題
  */
@@ -2997,7 +3223,6 @@ function handleShelfPick(word) {
       ui.play([{ speaker: 'npc', state: 'happy', text: field.reactions.right }], openPanel);
       return;
     }
-    if (res.type !== 'textbookOnly') changeFavor(-1);
     giveHint({ ...res, scenes: [[{ speaker: res.type === 'textbookOnly' ? 'tutor' : 'npc', state: res.state, text: res.line }]] },
       `${stage.title}-${field.id}-shelf-${word}`);
   });
@@ -3017,49 +3242,39 @@ function handleFormPick(form) {
     return;
   }
   notePending(field, res);          // 漏 s → 通過這關後出追加題
-  changeFavor(-1);
   giveHint(res, `${stage.title}-${field.id}-${res.type}`);
-}
-
-// Grandma 好感度增減（關卡 3、4）：delta 是愛心數，一顆 = 20 點
-function changeFavor(delta) {
-  if (D().type !== 'craft') return;
-  grandmaAffection = Math.max(0, Math.min(100, grandmaAffection + delta * 20));
-  ui.setFavor(grandmaAffection);
 }
 
 /*
  * Boss 戰盲打：每按一個字母呼叫一次
  *   打對 → 底線翻成金色字母、微震、揮擊聲；遇到空白自動跳過；整串打完 → finishAttack()
- *   打錯 → 「喀」聲、整串閃紅；同一題第一次錯計入拼字錯誤；
- *          地獄難度扣秒；每打錯 WRONG_KEYS_PER_HEART 個扣 1 顆愛心，扣光再扣就失敗
+ *   打錯 → 「喀」聲、整串閃紅、大野狼往前一步；同一題第一次錯計入拼字錯誤
+ *          Hard：這一招的倒數扣 2 秒，扣到 0 就失敗
  */
 function battleKey(k) {
-  if (game.state !== STATES.ANSWER || D().type !== 'battle') return;
+  if (game.state !== STATES.ANSWER || D().type !== 'battle' || !game.battle) return;
   const bt = game.battle;
   const en = bt.attacks[bt.idx].en;
   if (k === en[bt.pos]) {
     const hit = bt.pos;
     bt.pos++;
     while (en[bt.pos] === ' ') bt.pos++;     // 自動跳過空白
-    sfx.swish();
+    sfx.hit(bt.combo++);                     // 連擊越多，叮聲越高
     ui.updateTyping(hit);
     if (bt.pos >= en.length) finishAttack();
     return;
   }
   sfx.thud();
+  bt.combo = 0;                              // 打錯：連擊歸零
   ui.flashTypingError();
-  bt.wrongKeys++;
   bt.creep = Math.min(170, bt.creep + 12);   // 打錯：大野狼趁機往前一步
   if (!bt.missThis) { bt.missThis = true; countError('typo'); }
   const pen = DIFFICULTY[bt.diff].penalty;
-  if (pen) { bt.timeLeft = Math.max(0, bt.timeLeft - pen); ui.timerPenalty(pen); ui.updateTimer(); }
-  if (bt.wrongKeys % WRONG_KEYS_PER_HEART === 0) {
-    if (bt.hearts === 0) { closePanel(); failBattle('hearts'); return; }
-    bt.hearts--;
-    ui.setHearts(bt.hearts);
-    ui.updateBattleHud();
-    ui.quake();
+  if (pen) {
+    bt.timeLeft = Math.max(0, bt.timeLeft - pen);
+    ui.timerPenalty(pen);
+    ui.updateTimer();
+    if (bt.timeLeft <= 0) { closePanel(); die('time'); }
   }
 }
 
@@ -3074,7 +3289,7 @@ function finishAttack() {
   closePanel();                    // 面板收起、倒數暫停
   sfx.critical();
   ui.quake();
-  ui.typeLine({ speaker: 'red', text: `Take this! ${atk.en.charAt(0).toUpperCase() + atk.en.slice(1)}!`, sub: '' });
+  ui.typeLine({ speaker: 'red', text: `Take this! ${atk.en.charAt(0).toUpperCase() + atk.en.slice(1)}!`, sub: `【${atk.zh}】` });
   const hpLeft = bt.attacks.length - bt.idx - 1;
   const last = hpLeft === 0;
   const round = game;
@@ -3091,7 +3306,6 @@ function finishAttack() {
     setTimeout(() => {
       if (game !== round) return;
       if (last) {
-        ui.setHearts(null);
         $('game').classList.remove('danger', 'hell');
         ui.play(stage.done, () => { game.queue.shift(); showResult(); });
         return;
@@ -3099,6 +3313,7 @@ function finishAttack() {
       bt.idx++;
       bt.pos = 0;
       bt.missThis = false;
+      bt.timeLeft = bt.limit;          // 每一招獨立計時：擊中後重置秒數
       ui.setNpc(undefined, 'wolf');
       openPanel();
     }, atk.wolfReaction.length * 32 + 1500);
@@ -3135,7 +3350,8 @@ function resetToTitle() {
   music.stop();
   ui.stopAll();
   errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
-  grandmaAffection = 100;
+  redHp = RED_MAX_HP;
+  deathCount = 0;
   game = freshGame();
   $('game').classList.remove('ending', 'quake');
   $('result-screen').classList.remove('show');
@@ -3185,6 +3401,8 @@ $('panel').addEventListener('click', e => {
   if (formBtn) handleFormPick(formBtn.dataset.form);
   const vk = e.target.closest('[data-key]');          // 觸控裝置的字母按鈕
   if (vk) battleKey(vk.dataset.key);
+  const diffBtn = e.target.closest('[data-diff]');    // Boss 戰難度選擇
+  if (diffBtn) chooseDifficulty(diffBtn.dataset.diff);
 });
 
 // 點廚房層架上的物品 → 點擊合成（關卡 3、4）或 Boss 戰出招（關卡 5）
@@ -3192,6 +3410,9 @@ $('kitchen-shelf').addEventListener('click', e => {
   const item = e.target.closest('[data-item]');
   if (item && $('kitchen-shelf').classList.contains('active')) handleShelfPick(item.dataset.item);
 });
+
+$('retry-btn').addEventListener('click', retryAfterDeath);
+$('giveup-btn').addEventListener('click', giveUpAfterDeath);
 
 $('result-screen').addEventListener('click', e => {
   if (e.target.id === 'unlock-btn') $('minigame').classList.toggle('show');
@@ -3201,7 +3422,7 @@ $('result-screen').addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT';
   // Boss 戰盲打：全局捕捉字母鍵（不需要任何輸入框）
-  if (game.state === STATES.ANSWER && D().type === 'battle') {
+  if (game.state === STATES.ANSWER && D().type === 'battle' && game.battle) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.isComposing || e.key === 'Process') {      // 中文輸入法開著，按鍵抓不到字母
       const note = $('type-note');
