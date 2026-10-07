@@ -1636,6 +1636,7 @@ function renderSituation(food, container) {
 // 卡片下方的小字（依疊法描述發生了什麼）
 function situationNote(food, c, ok) {
   if (ok || !food) return '';
+  if (c === 'slice') return '（茶又不能切成一片一片，全灑出來了……）';
   const mode = situationMode(food, c);
   if (mode === 'fill') return food === 'tea' ? (c === 'glass' ? '（熱茶倒進玻璃杯，好燙！）' : '（這是喝湯的碗吧……）') : '（奶昔要用舔的嗎……）';
   return {
@@ -1803,7 +1804,7 @@ const STAGES = [
         id: 'salad', correct: 'bowls', hint_tw: '碗', food: 'fruit salad', plural: true, remedial: 'slices',
         foodEmoji: '🥗',
         reactions: {
-          right: '對！水果沙拉就是要裝在碗裡！',
+          right: ['Yes! Fruit salad belongs in a nice deep bowl. Thank you, sweetie!', '對！水果沙拉就是要裝在深深的碗裡。謝謝妳，乖孩子！'],
           // 選錯容器：謎語式提示 [英文台詞, 中文翻譯]，描述形狀、材質或功能，不直接說答案
           wrong: {
             glass: ['Oh dear, my spoon won\'t fit in here. Could you find something wider and deeper for me?', '哎呀，我的湯匙伸不進去呀。能不能幫奶奶找個又寬又深的東西來裝？'],
@@ -1821,7 +1822,7 @@ const STAGES = [
         id: 'shake', correct: 'glasses', hint_tw: '玻璃杯', food: 'milk shake', plural: true, remedial: 'dishes',
         foodEmoji: '🥤',
         reactions: {
-          right: '這才對嘛，漸層真美！',
+          right: ['Oh, how lovely! Now I can see the pretty pink gradient!', '哎呀，真漂亮！這下看得到粉紅色的漸層了！'],
           wrong: {
             cup: ['It\'s a pity I can\'t see the pretty pink gradient through this. Do you have something tall and clear?', '用這個裝好可惜，奶奶都看不到漂亮的粉紅漸層了。妳有高高、透明的那種杯子嗎？'],
             bowl: ['Oh my, am I supposed to lap it up like a kitty? I\'d love something tall that I can sip from.', '哎呀，奶奶要像小貓一樣舔著喝嗎？我想要一個高高的、可以小口喝的東西。'],
@@ -1841,7 +1842,7 @@ const STAGES = [
       }
     ],
     hints: {
-      plural: '容器拼對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！'
+      plural: '量詞用對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！'
     },
     intro: [
       { speaker: 'npc', state: 'angry', text: 'Give me a little cheese!', sub: '給我一點起司！' },
@@ -1856,7 +1857,7 @@ const STAGES = [
 
   // ---------- 關卡 4：魔王關（容器混淆與複數） ----------
   {
-    title: '關卡 4｜魔王關：容器別搞混！',
+    title: '關卡 4｜魔王關：量詞別搞混！',
     type: 'craft',
     shelf: ['slice', 'box', 'plate', 'glass', 'cup', 'bowl'],
     who: 'Red 確認：',
@@ -1867,7 +1868,7 @@ const STAGES = [
         foodEmoji: '🍕',
         caption: w => w === 'slice' ? 'A slice of pizza' : null,
         reactions: {
-          right: '對，一片一片的披薩最好拿！',
+          right: ['Perfect! A little triangle is just right for my hand.', '太好了！一小塊三角形，拿在手上剛剛好。'],
           wrong: {
             box: ['A whole box is too much for my small stomach! I just need one flat piece cut into a triangle.', '一整盒對奶奶小小的胃來說太多了！我只需要切成三角形的一扁塊就好。'],
             plate: ['Oh my, a whole pizza on a plate? That\'s far too much for me! Just one thin triangle I can hold in my hand, please.', '哎呀，整個披薩放在盤子上？奶奶吃不了那麼多！只要一塊可以拿在手上的薄薄三角形就好。'],
@@ -1884,7 +1885,7 @@ const STAGES = [
         id: 'tea', correct: 'cups', hint_tw: '杯', food: 'tea', plural: true, remedial: 'slices',
         foodEmoji: '🍵',
         reactions: {
-          right: '熱茶就是要用 cup 裝，才不會燙手！',
+          right: ['Ah, a little handle! Now I won\'t burn my hands.', '啊，有小把手真好！這樣就不會燙到手了。'],
           wrong: {
             glass: ['Oh my, this is too hot to hold! I need something with a little handle so I don\'t burn my hands.', '哎喲，這拿著好燙手呀！奶奶需要一個旁邊有小把手的東西，才不會燙到。'],
             bowl: ['Oh dear, am I drinking soup? It\'s so wide that the tea gets cold fast. Something small with a handle, please.', '哎呀，奶奶是在喝湯嗎？這麼寬，茶一下就涼了。給我一個小小的、有把手的東西好嗎？'],
@@ -1902,7 +1903,7 @@ const STAGES = [
       }
     ],
     hints: {
-      plural: '容器拼對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！'
+      plural: '量詞用對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！'
     },
     intro: [
       { speaker: 'npc', state: 'angry', text: 'I still need more!', sub: '我還要更多！' },
@@ -1926,17 +1927,17 @@ const STAGES = [
      */
     attackPool: [
       { zh: '一整條麵包', en: 'a loaf of bread', throw: ['loaf'], color: '#d48a43',
-        wolfReaction: 'A loaf of bread?! 妳拿整條剛烤好的麵包砸我的臉？！' },
+        wolfReaction: ['A loaf of bread?! You hit my face with a whole loaf?!', '妳拿整條剛烤好的麵包砸我的臉？！'] },
       { zh: '一片披薩', en: 'a slice of pizza', throw: ['pizza'], color: '#f4c35a',
-        wolfReaction: 'A slice of pizza?! 剛出爐的起司燙到我的眼睛了啦！' },
+        wolfReaction: ['A slice of pizza?! The hot cheese got in my eyes!', '剛出爐的起司燙到我的眼睛了啦！'] },
       { zh: '一杯熱茶', en: 'a cup of hot tea', throw: ['tea'], color: '#a8662e',
-        wolfReaction: 'A cup of hot tea?! 妳居然直接把熱茶往我身上潑！' },
+        wolfReaction: ['A cup of hot tea?! You splashed hot tea all over me!', '妳居然直接把熱茶往我身上潑！'] },
       { zh: '一杯奶昔', en: 'a glass of milk shake', throw: ['shake'], color: '#ff86b5',
-        wolfReaction: 'A glass of milk shake?! 我的毛全部黏在一起了，這很難洗欸！' },
+        wolfReaction: ['A glass of milk shake?! Now my fur is all sticky!', '我的毛全部黏在一起了，這很難洗欸！'] },
       { zh: '一碗水果沙拉', en: 'a bowl of fruit salad', throw: ['salad'], color: '#7cc95a',
-        wolfReaction: 'A bowl of fruit salad?! 這麼大一個碗砸過來是想痛死我嗎！' },
+        wolfReaction: ['A bowl of fruit salad?! Ouch! That big bowl really hurts!', '這麼大一個碗砸過來是想痛死我嗎！'] },
       { zh: '兩袋糖果', en: 'two bags of candy', throw: ['candy', 'candy'], color: '#ff7aa8',
-        wolfReaction: 'Two bags of candy?! 裡面糖果那麼多，砸起來跟石頭一樣痛啊！' }
+        wolfReaction: ['Two bags of candy?! So much candy, it hits like rocks!', '裡面糖果那麼多，砸起來跟石頭一樣痛啊！'] }
     ],
     intro: [
       { speaker: 'red', text: 'Grandma, why do you need so much food?', sub: '奶奶，妳為什麼需要這麼多食物？' },
@@ -2159,13 +2160,13 @@ function judgeFill(stage, field, raw) {
         if (needsEs && isTextbook) {
           return {
             ok: false, type: 'esRule', state: 'hint',
-            tree: [`容器拼對了，但這是單複數的問題！數字大於一要變複數，可是 ${word} 的字尾是 ${word.match(/(sh|ch|s|x)$/)[1]}，這種字的複數不是只加 s，而是加什麼呢？`]
+            tree: [`量詞用對了，但這是單複數的問題！數字大於一要變複數，可是 ${word} 的字尾是 ${word.match(/(sh|ch|s|x)$/)[1]}，這種字的複數不是只加 s，而是加什麼呢？`]
           };
         }
         return {
           ok: false, type: 'plural', state: 'hint',
           tree: isTextbook
-            ? [stage.hints?.plural || '容器拼對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！',
+            ? [stage.hints?.plural || '量詞用對了，但這是單複數的問題！你看前面數字大於一，量詞本身也要加上 s 變身喔！',
                `還是單複數的問題喔！再看一次句子，前面的數字是幾？大於一的時候，${word} 後面要加上什麼才是「很多個」？`]
             : [`這是單複數的問題！前面的數字大於一，量詞要加 s 喔！${note}`]
         };
@@ -2207,6 +2208,7 @@ function judgeContainer(field, word) {
 // 動畫卡片的說明文字，例如 "Milk shake in a Cup"
 function craftCaption(field, word) {
   const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
+  if (word === 'slice') return `A slice of ${field.food}`;     // slice 是量詞不是容器，不說 in a Slice
   return (field.caption && field.caption(word)) || `${cap(field.food)} in a ${cap(word)}`;
 }
 
@@ -2727,10 +2729,10 @@ const ui = {
     if (picked) {
       // 單複數的選項：單數、多加 s、正確的複數（去重複後打亂順序）
       const forms = [...new Set([picked, picked + 's', pluralize(picked)])].sort(() => Math.random() - 0.5);
-      action = `<div class="pick-note">容器選對了！看看前面的數量，要不要加 s？</div>
+      action = `<div class="pick-note">量詞選對了！看看前面的數量，要不要加 s？</div>
         <div class="form-row">${forms.map(w => `<button class="btn alt form-btn" type="button" data-form="${w}">${w}</button>`).join('')}</div>`;
     } else {
-      action = `<div class="pick-note">點上方層架的容器，幫 Grandma 裝「${cur.food}」</div>`;
+      action = `<div class="pick-note">點上方層架，選出「${cur.food}」要用的量詞</div>`;
     }
     this.showPanel(`
       <div class="panel-title">${stage.title}</div>
@@ -3253,7 +3255,8 @@ function handleShelfPick(word) {
   if (!field || L().picked[field.id]) return;        // 容器已選好，正在等單複數
 
   closePanel();
-  ui.play([{ speaker: 'think', text: `用 ${word} 裝裝看……` }]);
+  // slice 是「一片」不是容器，不說「裝」
+  ui.play([{ speaker: 'think', text: word === 'slice' ? `切成一片一片的（slice）試試看……` : `用 ${word} 裝裝看……` }]);
   const res = judgeContainer(field, word);
   if (res.ok) sfx.correct();
   const round = game;
@@ -3262,7 +3265,7 @@ function handleShelfPick(word) {
     if (game !== round) return;
     if (res.ok) {
       L().picked[field.id] = word;
-      ui.play([{ speaker: 'npc', state: 'happy', text: field.reactions.right }], openPanel);
+      ui.play([{ speaker: 'npc', state: 'happy', text: field.reactions.right[0], sub: field.reactions.right[1] }], openPanel);
       return;
     }
     giveHint({ ...res, scenes: [[{ speaker: res.type === 'textbookOnly' ? 'tutor' : 'npc', state: res.state, text: res.line, sub: res.sub }]] },
@@ -3343,7 +3346,7 @@ function finishAttack() {
     ui.setHp(hpLeft);
   }).then(() => {
     if (game !== round) return;
-    ui.typeLine({ speaker: 'npc', state: 'hurt', text: atk.wolfReaction });
+    ui.typeLine({ speaker: 'npc', state: 'hurt', text: atk.wolfReaction[0], sub: atk.wolfReaction[1] });
     // 等吐槽打字完，再停 1.5 秒自動往下
     setTimeout(() => {
       if (game !== round) return;
@@ -3358,7 +3361,7 @@ function finishAttack() {
       bt.timeLeft = bt.limit;          // 每一招獨立計時：擊中後重置秒數
       ui.setNpc(undefined, 'wolf');
       openPanel();
-    }, atk.wolfReaction.length * 32 + 1500);
+    }, atk.wolfReaction[0].length * 32 + 1500);
   });
 }
 
