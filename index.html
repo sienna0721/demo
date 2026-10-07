@@ -189,6 +189,145 @@
   #red-hearts.last::after { content: '最後機會！'; font-size: 14px; font-weight: 800; color: #fff; align-self: center; margin-left: 6px; }
   @keyframes last-chance { from { opacity: 1; } to { opacity: 0.45; } }
   #game.ending #red-hearts { display: none; }
+
+  /* ====== 互動式廚房層架（關卡 3～5 才出現） ====== */
+  #kitchen-shelf {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(94%, 780px);
+    display: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 10px 14px;
+    background: linear-gradient(180deg, #c48d55, #9a6537);
+    border-bottom: 8px solid #6e4626;          /* 木頭層板 */
+    border-radius: 12px 12px 4px 4px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+    z-index: 6;
+  }
+  #kitchen-shelf.show { display: flex; }
+  .shelf-item {
+    font: inherit;
+    width: 86px;
+    height: 86px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: rgba(255, 252, 244, 0.92);
+    border: 3px solid #f3d9a8;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
+  }
+  .shelf-item .svg-icon { display: block; transition: transform 0.2s ease; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.12)); }
+  /* hover：整顆按鈕放大之外，圖示再輕輕晃一下 */
+  #kitchen-shelf.active .shelf-item:hover .svg-icon { animation: icon-wiggle 0.5s ease; }
+  @keyframes icon-wiggle { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-8deg); } 65% { transform: rotate(6deg); } }
+  .shelf-item .word { font-size: 13px; font-weight: 800; color: #5a3a1e; font-family: "Segoe UI", sans-serif; }
+  /* 可以點的時候才有 hover 放大；不能點時變淡 */
+  #kitchen-shelf.active .shelf-item:hover { transform: scale(1.14) translateY(-4px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); border-color: var(--gold); }
+  #kitchen-shelf:not(.active) .shelf-item { opacity: 0.55; cursor: default; }
+  /* 層架出現時，作答面板往下讓位 */
+  #game.shelf-on #panel { top: 158px; }
+  #game.shelf-on #boss-hp { bottom: auto; top: 168px; }
+  .fav-short { display: none; }
+  #game.ending #kitchen-shelf { display: none; }
+
+  /* 面板裡：等待點層架的空格、單複數按鈕 */
+  .pick-blank { display: inline-block; min-width: 110px; border-bottom: 3px solid var(--ink); text-align: center; font-weight: 700; color: var(--forest); }
+  .pick-blank.active { background: #fff3d1; outline: 2px dashed var(--gold); border-radius: 4px; color: #a0475a; }
+  .pick-blank.done { color: var(--ok); }
+  .form-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+  .form-btn { font-family: "Segoe UI", sans-serif; }
+  .pick-note { font-size: 14px; color: #7a6a7d; text-align: center; margin-top: 6px; }
+
+  /* ====== 合成動畫卡片（點容器後彈出） ====== */
+  #craft-fx {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 8;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  #craft-fx.show { opacity: 1; }
+  .craft-card {
+    position: relative;
+    min-width: 260px;
+    padding: 18px 30px 16px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 5px solid #ccc;
+    border-radius: 22px;
+    text-align: center;
+    transform: scale(0.6);
+    transition: transform 0.35s cubic-bezier(.3, 1.6, .5, 1);
+  }
+  #craft-fx.show .craft-card { transform: scale(1); }
+  .craft-icons { position: relative; height: 124px; display: flex; justify-content: center; align-items: flex-end; }
+  .craft-container .svg-icon { display: block; }
+  .craft-food { position: absolute; left: 50%; top: 0; transform: translateX(-50%); font-size: 46px; line-height: 1; transition: filter 0.3s; }
+  .craft-caption { margin-top: 6px; font: 800 24px "Segoe UI", sans-serif; }
+  .craft-sub { font-size: 15px; margin-top: 2px; }
+  /* 錯誤：食物被遮住、紅框抖動 */
+  #craft-fx.wrong .craft-card { border-color: var(--bad); animation: shake 0.4s 0.3s; }
+  #craft-fx.wrong .craft-food { filter: brightness(0.15) blur(2px); opacity: 0.55; }
+  #craft-fx.wrong .craft-caption { color: var(--bad); }
+  /* 正確：綠光閃爍＋星星 */
+  #craft-fx.right .craft-card { border-color: #4caf7a; animation: craft-glow 0.6s ease-in-out 3 alternate; }
+  #craft-fx.right .craft-food { filter: drop-shadow(0 0 10px #ff9ad5) drop-shadow(0 0 16px #9ad5ff); }
+  #craft-fx.right .craft-caption { color: var(--ok); }
+  #craft-fx.right .craft-card::before,
+  #craft-fx.right .craft-card::after { content: '✨'; position: absolute; font-size: 34px; animation: twinkle 0.7s ease-in-out infinite alternate; }
+  #craft-fx.right .craft-card::before { left: -16px; top: -14px; }
+  #craft-fx.right .craft-card::after { right: -16px; bottom: -10px; animation-delay: 0.35s; }
+  @keyframes craft-glow { from { box-shadow: 0 0 0 0 rgba(76, 175, 122, 0.7); } to { box-shadow: 0 0 0 16px rgba(76, 175, 122, 0); } }
+  @keyframes twinkle { from { transform: scale(0.7); opacity: 0.6; } to { transform: scale(1.2); opacity: 1; } }
+  #craft-fx.right .situation { filter: drop-shadow(0 0 8px rgba(76, 175, 122, 0.75)); }
+  /* ====== 情境組合圖 Situation Renderer ====== */
+  .situation { position: relative; width: 120px; height: 120px; margin: 0 auto; }
+  .situation .sl { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  /* 灑出來：先像水柱落下，再壓扁成一攤 */
+  .sit-spill .puddle { transform-origin: 50% 92%; transform: scale(1.45, 0.2); animation: sit-spill 0.9s ease-out; }
+  @keyframes sit-spill { from { transform: translateY(-40%) scale(0.3, 1); } }
+  .sit-spill .drops { animation: sit-drops 0.9s ease-out; }
+  @keyframes sit-drops { from { opacity: 0; translate: 0 -25%; } }
+  /* 硬塞進去：歪斜卡住、抖幾下 */
+  .situation .wob { transform-origin: 50% 60%; animation: sit-wobble 0.3s ease-in-out 5 alternate; }
+  @keyframes sit-wobble { from { rotate: -6deg; } }
+  /* 倒進去、放上去 */
+  .situation .food-layer { animation: sit-pour 0.7s ease-out; }
+  @keyframes sit-pour { from { opacity: 0; } }
+  .situation .slide { animation: sit-slide 0.6s ease-out; }
+  @keyframes sit-slide { from { translate: 0 -30%; opacity: 0; } }
+  .situation .steam { animation: sit-steam 1.1s ease-in-out infinite alternate; }
+  @keyframes sit-steam { from { translate: 0 5%; opacity: 0.35; } }
+  /* 看不到漸層：角落冒問號 */
+  .sit-badge { position: absolute; right: -4px; top: -2px; width: 30px; height: 30px; border-radius: 50%;
+               background: #fff; border: 3px solid #c8323c; color: #c8323c; font: 900 18px/24px sans-serif;
+               text-align: center; animation: sit-badge 0.5s 0.4s both cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes sit-badge { from { transform: scale(0); } }
+  /* ====== 情境組合圖 end ====== */
+
+
+  @media (max-width: 600px) {
+    .shelf-item { width: 58px; height: 58px; }
+    .shelf-item .svg-icon { width: 34px; height: 34px; }
+    .shelf-item .word { font-size: 11px; }
+    #game.shelf-on #panel { top: 196px; }
+    #game.shelf-on #boss-hp { top: 228px; }
+    #game.shelf-on #panel { top: 226px; }
+    .fav-long { display: none; }
+    .btn-long { display: none; }
+    .fav-short { display: inline; }
+  }
   #game:has(#panel:not(.hidden)) #red-hearts { visibility: hidden; }
 
   /* 失敗：小紅帽倒下 */
@@ -204,6 +343,61 @@
   .timer.warn .timer-fill { background: var(--red); }
   .timer.warn .timer-num { animation: last-chance 0.4s ease-in-out infinite alternate; }
   .battle-head .mini-red { font-size: 13px; font-weight: 700; color: #c2185b; white-space: nowrap; }
+
+  /* ====== Boss 戰盲打 ====== */
+  .diff-tag { font-size: 12px; font-weight: 800; color: #fff; border-radius: 6px; padding: 1px 8px; white-space: nowrap; }
+  .diff-normal { background: #3f7d5b; } .diff-hard { background: #d9822b; } .diff-hell { background: #8f1f28; }
+  .atk-zh { text-align: center; font-size: 34px; font-weight: 900; color: var(--red-dark); letter-spacing: 2px; margin: 2px 0; }
+  #type-line { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 4px; margin: 6px 0 4px;
+               font: 800 30px/1 Consolas, "Courier New", monospace; }
+  .tc { display: inline-block; width: 24px; height: 38px; line-height: 38px; text-align: center; border-bottom: 4px solid #6b5a70; }
+  .tc.gap { width: 26px; border: 0; }
+  .untyped-char { color: transparent; }
+  .typed-char { color: #c8901a; border-color: var(--gold); text-shadow: 0 0 8px rgba(255, 200, 60, 0.9); }
+  .tc.cursor { border-color: var(--red); animation: cursor-blink 0.8s steps(2) infinite; }
+  @keyframes cursor-blink { 50% { border-color: transparent; } }
+  .tc.pop { animation: char-hit 0.15s ease-out; }
+  @keyframes char-hit { from { transform: translateX(2px) scale(1.25); } }
+  #type-line.miss .tc { animation: type-miss 0.35s ease; }
+  @keyframes type-miss { 0%, 100% { background: transparent; } 30%, 70% { background: rgba(200, 50, 60, 0.35); border-color: var(--red); } }
+  #type-line.miss { animation: shake 0.3s; }
+  .timer { position: relative; }
+  .timer-pen { position: absolute; right: 54px; top: -6px; color: var(--red); font-weight: 900; font-size: 18px; animation: pen-up 0.9s ease-out forwards; }
+  @keyframes pen-up { to { transform: translateY(-14px); opacity: 0; } }
+  /* 觸控裝置的字母鍵 */
+  .vkb { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+  .vkb-row { display: flex; gap: 4px; }
+  .vk { font: 700 16px "Segoe UI", sans-serif; width: 30px; height: 36px; border: 0; border-radius: 6px; background: #f1e6ea; color: var(--ink); }
+  .vk:active { background: var(--gold); }
+  /* 紅色警戒濾鏡 */
+  .danger-filter { position: absolute; inset: 0; z-index: 3; pointer-events: none; display: none;
+                   background: radial-gradient(ellipse at center, transparent 45%, rgba(200, 0, 0, 0.35) 100%);
+                   animation: danger-pulse 1.2s ease-in-out infinite alternate; }
+  #game.danger .danger-filter { display: block; }
+  #game.hell .danger-filter { background: radial-gradient(ellipse at center, rgba(120, 0, 0, 0.12) 30%, rgba(200, 0, 0, 0.55) 100%); animation-duration: 0.7s; }
+  @keyframes danger-pulse { from { opacity: 0.55; } to { opacity: 1; } }
+  #game.ending .danger-filter { display: none; }
+  /* 丟出去的食物、命中噴濺、爆擊數字 */
+  .fx-icon { width: 74px; height: 74px; }
+  .fx-icon .situation { width: 74px; height: 74px; }
+  .fx-icon > svg { width: 100%; height: 100%; }
+  .fx-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .fx-dmg { font: 900 54px/1 "Segoe UI", sans-serif; color: #ff2d3c; white-space: nowrap; text-align: center;
+            -webkit-text-stroke: 2px #fff; text-shadow: 0 4px 0 #8f1f28, 0 0 18px rgba(255, 60, 60, 0.8); }
+  .fx-dmg small { display: block; font-size: 24px; letter-spacing: 3px; margin-top: 2px; }
+  @media (max-width: 600px) {
+    .atk-zh { font-size: 26px; }
+    #type-line { font-size: 22px; gap: 4px 3px; }
+    .tc { width: 13px; height: 26px; line-height: 26px; border-bottom-width: 3px; }
+    .tc.gap { width: 12px; }
+    #type-line { font-size: 17px; gap: 3px 2px; flex-wrap: nowrap; }
+    .battle-head { flex-wrap: wrap; row-gap: 2px; }
+    .battle-head .panel-title { width: 100%; }
+    #type-note { font-size: 12px; }
+    .vk { width: 30px; height: 30px; font-size: 15px; }
+    #panel.battle { padding: 10px 12px 12px; }
+    .fx-dmg { font-size: 40px; }
+  }
 
   /* YOU DIED 畫面 */
   #you-died {
@@ -425,6 +619,7 @@
   #speaker.mom { background: #3f7d5b; }
   #speaker.tutor { background: #2f6fa8; }
   #speaker.narr { background: #4a3d52; }
+  #speaker.think { background: #a0475a; }   /* Red 的內心戲 */
 
   #text { font-size: 21px; line-height: 1.65; min-height: 2em; white-space: pre-wrap; }
   #sub { margin-top: 6px; font-size: 16px; color: #f1d9a0; min-height: 1.2em; }
@@ -442,6 +637,25 @@
     animation: bob 0.9s infinite;
   }
   #next-arrow.show { opacity: 1; }
+
+  /* 對話框教學圖解（約 120px） */
+  #dialogue-icon {
+    position: absolute;
+    right: 40px;
+    top: calc(50% - 8px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(-50%);
+  }
+  #dialogue.has-icon #dialogue-icon { display: flex; animation: icon-pop 0.45s cubic-bezier(.3, 1.6, .5, 1); }
+  #dialogue.has-icon #text, #dialogue.has-icon #sub { padding-right: 150px; }
+  .di-label { margin-top: 2px; font-size: 14px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+  @keyframes icon-pop { from { transform: translateY(-50%) scale(0.3); opacity: 0; } to { transform: translateY(-50%) scale(1); opacity: 1; } }
+  @media (max-width: 600px) {
+    #dialogue-icon .svg-icon { width: 72px; height: 72px; }
+    #dialogue.has-icon #text, #dialogue.has-icon #sub { padding-right: 88px; }
+  }
   @keyframes bob {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(5px); }
@@ -596,14 +810,30 @@
   <!-- Boss 戰動作特效圖層 -->
   <div id="fx"></div>
 
+  <!-- Boss 戰困難以上的紅色警戒濾鏡 -->
+  <div class="danger-filter"></div>
+
+  <!-- 互動式廚房層架：關卡 3～5 才出現，物品依關卡設定（STAGES 的 shelf） -->
+  <div id="kitchen-shelf"></div>
+
+  <!-- 點擊合成的動畫卡片 -->
+  <div id="craft-fx">
+    <div class="craft-card">
+      <div class="craft-icons"><span class="craft-container"></span><span class="craft-food"></span></div>
+      <div class="craft-caption"></div>
+      <div class="craft-sub"></div>
+    </div>
+  </div>
+
   <!-- 上方常駐控制列 -->
   <div id="topbar">
     <span id="scene-label" class="top-tag">場景：Red 的家</span>
     <span class="spacer"></span>
     <span id="info-stage" class="top-tag">準備中</span>
     <span id="info-err" class="top-tag">答錯 0 次</span>
+    <span id="info-favor" class="top-tag" hidden></span>
     <button id="mute-btn" class="top-tag top-btn" type="button">🔊 語音開</button>
-    <button id="home-btn" class="top-tag top-btn" type="button">🏠 回到主頁 (Home)</button>
+    <button id="home-btn" class="top-tag top-btn" type="button" title="回到主頁 (Home)">🏠<span class="btn-long"> 回到主頁 (Home)</span></button>
   </div>
 
   <!-- 互動面板：只在需要作答時出現 -->
@@ -615,6 +845,8 @@
     <div id="text"></div>
     <div id="sub"></div>
     <div id="next-arrow">▼</div>
+    <!-- 教學圖解：台詞帶 icon 欄位時顯示在對話框右側 -->
+    <div id="dialogue-icon"></div>
   </div>
 
   <!-- 開場畫面 -->
@@ -656,8 +888,16 @@ function toEmbedUrl(url) {
 }
 
 // Boss 戰：限時與愛心
-const BATTLE_TIME_LIMIT = 45;   // 秒；只在作答面板打開時倒數，動畫與提示播放時暫停
-const RED_MAX_HEARTS = 3;       // 小紅帽的愛心：每答錯扣 1 顆，扣光後再答錯（第 4 次）就失敗
+// Boss 戰難度：由 grandmaAffection（Grandma 好感度）決定；倒數只在作答時進行
+//   creep：大野狼往前逼近的速度（px／秒）；penalty：打錯一個字母扣幾秒
+const DIFFICULTY = {
+  normal: { name: '普通', time: 45, creep: 3, penalty: 0 },
+  hard: { name: '困難', time: 30, creep: 5, penalty: 0 },
+  hell: { name: '地獄', time: 20, creep: 7, penalty: 2 }
+};
+const pickDifficulty = a => (a >= 80 ? 'normal' : a >= 40 ? 'hard' : 'hell');
+const RED_MAX_HEARTS = 3;          // 小紅帽的愛心：扣光後再扣（第 4 次）就失敗
+const WRONG_KEYS_PER_HEART = 3;    // 盲打時每打錯幾個字母扣 1 顆愛心
 
 // Boss 戰音樂：把音樂檔放在 index.html 同一個資料夾，檔名改成這裡寫的名字即可（mp3 / ogg / m4a 都行）
 // 也可以填完整網址；留空字串就不播音樂
@@ -673,6 +913,9 @@ let soundOn = true;
 //   spelling    拼字錯誤、亂碼、留白
 //   synonym     用錯字義（踩到語意陷阱：意思跟中文提示對不上，例如『片』填 loaf、『鹽』填 sugar）
 let errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
+
+// Grandma 好感度（0～100）：關卡 3、4 選錯容器或單複數各扣 20，決定 Boss 戰難度
+let grandmaAffection = 100;
 const errorTotal = () => Object.values(errorStats).reduce((a, b) => a + b, 0);
 
 /* =========================================================
@@ -791,7 +1034,11 @@ const speech = {
 function speakText(text, character = 'narr') {
   if (!speech.supported || !speech.enabled || !text) return;
   // 括號與底線不唸（例如旁白的 (Red goes to the kitchen.)）
-  const clean = text.replace(/[()（）_]/g, ' ').trim();
+  const clean = text
+    .replace(/<[^>]+>/g, '')                                         // 不唸 HTML 標籤
+    .replace(/[（(][^()（）]*[\u4e00-\u9fff][^()（）]*[)）]/g, ' ')   // 英文台詞裡的中文註解不唸，免得整句被切成中文語音
+    .replace(/[()（）_]/g, ' ')
+    .trim();
   if (!clean) return;
 
   const profile = VOICE_PROFILE[character] || VOICE_PROFILE.narr;
@@ -905,6 +1152,28 @@ const sfx = {
     osc.stop(c.currentTime + start + dur + 0.05);
   },
 
+  // 單一個滑音：從 freq 滑到 to，type 是波形
+  blip(freq, to, dur, type = 'triangle', vol = 0.15) {
+    if (!soundOn || !this.ctx) return;
+    const c = this.ctx;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, c.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(to, c.currentTime + dur);
+    gain.gain.setValueAtTime(vol, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+    osc.connect(gain).connect(c.destination);
+    osc.start();
+    osc.stop(c.currentTime + dur + 0.05);
+  },
+  swish() { this.blip(900, 1700, 0.07, 'triangle', 0.1); },          // 打對一個字母：輕快揮擊
+  thud() { this.blip(150, 60, 0.18, 'square', 0.16); },              // 打錯：低沉的「喀」
+  critical() {                                                     // 完成一擊：爆擊
+    this.blip(260, 50, 0.45, 'sawtooth', 0.2);
+    this.blip(1200, 300, 0.3, 'square', 0.07);
+  },
+
   correct() {
     if (!soundOn || !this.ctx) return;
     this.tone(880, 0, 0.18);      // A5
@@ -932,13 +1201,20 @@ const VOCAB_RE = new RegExp(`\\b(?:${VOCAB.join('|')})\\b`, 'gi');
 // 把一句話切成 [{ t: 文字, b: 是否粗體 }]，打字機逐字顯示時才不會把標籤打一半
 function toSegments(text) {
   const segs = [];
-  let last = 0;
-  for (const m of text.matchAll(VOCAB_RE)) {
-    if (m.index > last) segs.push({ t: text.slice(last, m.index), b: false });
-    segs.push({ t: m[0], b: true });
-    last = m.index + m[0].length;
+  // 劇本裡手動標的 <strong>…</strong> 一定加粗（課本單字表以外的字，例如 loaf、piece）
+  for (const part of text.split(/(<strong>.*?<\/strong>)/)) {
+    if (!part) continue;
+    const m = part.match(/^<strong>(.*?)<\/strong>$/);
+    if (m) { segs.push({ t: m[1], b: true }); continue; }
+    // 其餘文字照課本單字表自動加粗
+    let last = 0;
+    for (const v of part.matchAll(VOCAB_RE)) {
+      if (v.index > last) segs.push({ t: part.slice(last, v.index), b: false });
+      segs.push({ t: v[0], b: true });
+      last = v.index + v[0].length;
+    }
+    if (last < part.length) segs.push({ t: part.slice(last), b: false });
   }
-  if (last < text.length) segs.push({ t: text.slice(last), b: false });
   return segs;
 }
 
@@ -971,12 +1247,291 @@ function renderSegments(segs, n = Infinity) {
  */
 function traps(hint, meanings) {
   return Object.fromEntries(Object.entries(meanings).map(
-    ([word, meaning]) => [word, `${word} 是『${meaning}』喔！請依照提示，填入『${hint}』的英文。`]));
+    ([word, meaning]) => [word, `${word} 是『${meaning}』喔！請依照提示填入『${hint}』。`]));
 }
 
 // 同一個中文提示在不同關卡共用同一份陷阱表
 const TRAPS_SLICE = traps('片', { loaf: '條', pack: '包', bag: '袋', box: '盒', roll: '捲', plate: '盤子', dish: '盤子', bowl: '碗', bottle: '瓶', glass: '玻璃杯' });
 const TRAPS_BOWL = traps('碗', { plate: '盤子', dish: '盤子', cup: '杯子', mug: '馬克杯', glass: '玻璃杯', bottle: '瓶', can: '罐', tub: '桶', bag: '袋', box: '盒', slice: '片' });
+
+/*
+ * 扁平風格 SVG 圖示庫（viewBox 一律 0 0 100 100）
+ *   svgIcon(名稱, 尺寸) 產生 <svg>；層架、合成動畫卡片、對話框圖解都從這裡拿圖
+ *   要換圖只改這裡；名稱對照：層架物品見 SHELF_ITEMS 的 icon 欄位
+ */
+const FACE = '<circle cx="41" cy="66" r="2.6" fill="#5a3a1e"/><circle cx="59" cy="66" r="2.6" fill="#5a3a1e"/>'
+  + '<path d="M45 71 Q50 75 55 71" stroke="#5a3a1e" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+  + '<circle cx="35" cy="71" r="3.2" fill="#f28b82" opacity=".55"/><circle cx="65" cy="71" r="3.2" fill="#f28b82" opacity=".55"/>';
+const SHADOW = '<ellipse cx="50" cy="92" rx="34" ry="4.5" fill="#000" opacity=".12"/>';
+
+const ICONS = {
+  // ---------- 關卡 1 教學：麵包的三種量詞 ----------
+  // loaf：一整條剛烤好、胖胖的麵包
+  loaf: SHADOW
+    + '<path d="M10 74 Q8 36 50 31 Q92 36 90 74 Q90 84 80 84 L20 84 Q10 84 10 74Z" fill="#d48a43"/>'
+    + '<path d="M15 66 Q15 40 50 36 Q85 40 85 66 Q70 58 50 58 Q30 58 15 66Z" fill="#e6a65c"/>'
+    + '<path d="M31 44 L39 53 M47 41 L55 50 M63 44 L71 53" stroke="#f7d79f" stroke-width="4.5" stroke-linecap="round"/>'
+    + FACE,
+  // piece：隨手撕下來、形狀不規則的一塊
+  piece: SHADOW
+    + '<path d="M20 42 Q26 22 50 26 Q72 18 82 36 L76 44 L84 53 L75 61 L79 72 Q60 86 38 79 L32 72 L21 75 L26 64 L15 57 L24 49Z" fill="#d48a43"/>'
+    + '<path d="M28 44 Q33 30 50 33 Q66 28 74 39 L70 46 L76 53 L69 60 L71 68 Q57 77 41 72 L37 67 L29 68 L32 61 L24 56 L30 51Z" fill="#f7dcaa"/>'
+    + '<ellipse cx="45" cy="45" rx="3" ry="2" fill="#e8c287"/><ellipse cx="60" cy="42" rx="2.4" ry="1.7" fill="#e8c287"/><ellipse cx="54" cy="54" rx="2" ry="1.5" fill="#e8c287"/>'
+    + FACE,
+  // slice：切得平整、薄薄的方形吐司
+  slice: SHADOW
+    + '<path d="M18 46 Q12 22 34 22 Q40 12 50 16 Q60 12 66 22 Q88 22 82 46 L82 82 Q82 88 76 88 L24 88 Q18 88 18 82Z" fill="#c9843f"/>'
+    + '<path d="M25 47 Q20 29 37 29 Q42 21 50 24 Q58 21 63 29 Q80 29 75 47 L75 79 Q75 82 72 82 L28 82 Q25 82 25 79Z" fill="#f7dfae"/>'
+    + FACE,
+
+  // ---------- 廚房層架 ----------
+  // glass：透明冷飲杯（淺藍半透明＋冰塊）
+  glass: SHADOW
+    + '<path d="M26 16 L74 16 L67 86 Q66 91 60 91 L40 91 Q34 91 33 86Z" fill="#cdeefb" opacity=".9"/>'
+    + '<path d="M30 44 L70 44 L67 86 Q66 91 60 91 L40 91 Q34 91 33 86Z" fill="#8fd3f0" opacity=".75"/>'
+    + '<rect x="38" y="48" width="11" height="11" rx="2.5" fill="#fff" opacity=".8" transform="rotate(-12 43 53)"/>'
+    + '<rect x="52" y="52" width="10" height="10" rx="2.5" fill="#fff" opacity=".7" transform="rotate(10 57 57)"/>'
+    + '<path d="M35 24 L39 82" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".85"/>'
+    + '<rect x="24" y="13" width="52" height="6" rx="3" fill="#a9dcf1"/>',
+  // cup：有把手的熱飲馬克杯（冒熱氣）
+  cup: SHADOW
+    + '<path d="M38 26 Q34 20 38 13 M50 26 Q46 19 50 11 M62 26 Q58 20 62 13" stroke="#c4cad3" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+    + '<path d="M68 47 Q87 46 85 62 Q83 76 66 73" fill="none" stroke="#e8704f" stroke-width="8" stroke-linecap="round"/>'
+    + '<path d="M22 36 L72 36 L69 83 Q68 89 62 89 L32 89 Q26 89 25 83Z" fill="#f08463"/>'
+    + '<rect x="24" y="57" width="46" height="8" fill="#fff" opacity=".35"/>'
+    + '<ellipse cx="47" cy="36" rx="25" ry="5.5" fill="#d9644a"/><ellipse cx="47" cy="37" rx="20.5" ry="3.8" fill="#7a4a2a"/>',
+  // bowl：圓形深碗
+  bowl: SHADOW
+    + '<rect x="35" y="80" width="30" height="8" rx="4" fill="#3a83c9"/>'
+    + '<path d="M9 42 Q11 85 50 85 Q89 85 91 42Z" fill="#5aa7ec"/>'
+    + '<path d="M17 58 Q50 72 83 58" stroke="#fff" stroke-width="3.5" fill="none" opacity=".55" stroke-linecap="round"/>'
+    + '<ellipse cx="50" cy="42" rx="41" ry="10.5" fill="#3f8fd8"/><ellipse cx="50" cy="42" rx="36" ry="7.5" fill="#2a6fb3"/>',
+  // plate：平底圓盤
+  plate: '<ellipse cx="50" cy="66" rx="45" ry="15" fill="#000" opacity=".1"/>'
+    + '<ellipse cx="50" cy="61" rx="45" ry="19" fill="#cfd9e1"/>'
+    + '<ellipse cx="50" cy="58" rx="45" ry="19" fill="#f7f9fb"/>'
+    + '<ellipse cx="50" cy="58" rx="37" ry="14.5" fill="none" stroke="#9cc6e4" stroke-width="2.5"/>'
+    + '<ellipse cx="50" cy="58" rx="27" ry="9.5" fill="#e6edf2"/>',
+  // bag：裝糖果或麵粉的牛皮紙袋
+  bag: SHADOW
+    + '<path d="M23 32 L77 32 L82 86 Q82 90 78 90 L22 90 Q18 90 18 86Z" fill="#c99a62"/>'
+    + '<path d="M71 32 L77 32 L82 86 Q82 90 78 90 L75 90Z" fill="#000" opacity=".08"/>'
+    + '<path d="M23 32 L29 16 L71 16 L77 32Z" fill="#b5844d"/>'
+    + '<path d="M29 16 L35 23 L41 16 L47 23 L53 16 L59 23 L65 16 L71 16" stroke="#d9b07c" stroke-width="2.5" fill="none" stroke-linejoin="round"/>'
+    + '<rect x="33" y="50" width="34" height="22" rx="5" fill="#f4e6cf"/>'
+    + '<circle cx="50" cy="61" r="6" fill="#ff7aa8"/><path d="M44 61 L38 57 L38 65Z M56 61 L62 57 L62 65Z" fill="#ffb3cd"/>',
+  // bottle：裝水的寶特瓶
+  bottle: SHADOW
+    + '<rect x="41" y="6" width="18" height="10" rx="2.5" fill="#3a8fd6"/>'
+    + '<path d="M43 16 L57 16 L59 25 L41 25Z" fill="#d6eefa"/>'
+    + '<path d="M41 25 Q29 31 29 44 L29 83 Q29 91 37 91 L63 91 Q71 91 71 83 L71 44 Q71 31 59 25Z" fill="#d6eefa"/>'
+    + '<path d="M29 54 L71 54 L71 83 Q71 91 63 91 L37 91 Q29 91 29 83Z" fill="#7cc4ef" opacity=".8"/>'
+    + '<rect x="29" y="60" width="42" height="14" fill="#3a8fd6"/>'
+    + '<path d="M33 67 Q39 63 45 67 Q51 71 57 67 Q63 63 67 67" stroke="#fff" stroke-width="2.5" fill="none"/>'
+    + '<path d="M36 34 L36 50" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".85"/>',
+  // box：紙盒
+  box: SHADOW
+    + '<path d="M12 40 L50 25 L88 40 L50 55Z" fill="#dcac6f"/>'
+    + '<path d="M12 40 L50 55 L50 88 L12 73Z" fill="#c4904f"/>'
+    + '<path d="M88 40 L50 55 L50 88 L88 73Z" fill="#ad7c40"/>'
+    + '<path d="M31 32.5 L69 47.5" stroke="#f1d9ae" stroke-width="5"/>',
+  // pizzaSlice：一片披薩（關卡 4 的 slice）
+  pizzaSlice: SHADOW
+    + '<path d="M16 22 Q50 9 84 22 L50 90Z" fill="#f4c35a"/>'
+    + '<path d="M16 22 Q50 9 84 22 L79 32 Q50 21 21 32Z" fill="#d48b3a"/>'
+    + '<circle cx="43" cy="42" r="6.5" fill="#d6453a"/><circle cx="59" cy="52" r="5.5" fill="#d6453a"/><circle cx="48" cy="66" r="4.5" fill="#d6453a"/>'
+    + '<circle cx="62" cy="38" r="2" fill="#5e9e45"/><circle cx="40" cy="56" r="2" fill="#5e9e45"/>',
+  // flour：麵粉袋
+  flour: SHADOW
+    + '<circle cx="40" cy="12" r="5" fill="#fff" opacity=".9"/><circle cx="52" cy="9" r="4" fill="#fff" opacity=".8"/><circle cx="61" cy="14" r="3" fill="#fff" opacity=".7"/>'
+    + '<path d="M26 30 Q24 19 34 18 L66 18 Q76 19 74 30 L80 84 Q80 90 74 90 L26 90 Q20 90 20 84Z" fill="#f3eee4"/>'
+    + '<path d="M29 27 Q50 34 71 27" stroke="#c9b48e" stroke-width="4" fill="none" stroke-linecap="round"/>'
+    + '<path d="M50 78 L50 46" stroke="#d2a24c" stroke-width="3" stroke-linecap="round"/>'
+    + '<ellipse cx="44" cy="52" rx="4" ry="6.5" fill="#e0b55c" transform="rotate(-25 44 52)"/><ellipse cx="56" cy="52" rx="4" ry="6.5" fill="#e0b55c" transform="rotate(25 56 52)"/>'
+    + '<ellipse cx="44" cy="64" rx="4" ry="6.5" fill="#e0b55c" transform="rotate(-25 44 64)"/><ellipse cx="56" cy="64" rx="4" ry="6.5" fill="#e0b55c" transform="rotate(25 56 64)"/>',
+  // salt：鹽罐
+  salt: SHADOW
+    + '<path d="M33 22 Q50 11 67 22 L69 39 L31 39Z" fill="#9aa9b8"/>'
+    + '<circle cx="44" cy="25" r="2" fill="#5d6b78"/><circle cx="50" cy="22" r="2" fill="#5d6b78"/><circle cx="56" cy="25" r="2" fill="#5d6b78"/>'
+    + '<path d="M30 39 L70 39 L73 86 Q73 90 69 90 L31 90 Q27 90 27 86Z" fill="#d9e5ee"/>'
+    + '<path d="M29 60 L71 60 L73 86 Q73 90 69 90 L31 90 Q27 90 27 86Z" fill="#fff"/>'
+    + '<path d="M36 45 L35 84" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".9"/>',
+  // sugar：包裝糖果
+  sugar: SHADOW
+    + '<path d="M31 50 L11 34 L15 50 L11 66Z" fill="#ffb3cd"/><path d="M69 50 L89 34 L85 50 L89 66Z" fill="#ffb3cd"/>'
+    + '<ellipse cx="50" cy="50" rx="21" ry="17" fill="#ff7aa8"/>'
+    + '<path d="M42 35 Q48 50 42 65 M55 34 Q61 50 55 66" stroke="#fff" stroke-width="3.5" fill="none" opacity=".7" stroke-linecap="round"/>'
+};
+
+// 產生一個 <svg> 標籤
+function svgIcon(name, size = 60, cls = '') {
+  return `<svg class="svg-icon svg-${name} ${cls}" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`;
+}
+
+/*
+ * 動態情境組合（Situation Renderer）
+ *   不為每種「食物 × 容器」畫完整圖，只存基礎素材，依規則即時疊加：
+ *     SITUATION_ASSETS.containers  容器（直接引用 ICONS，不重複定義）
+ *     SITUATION_ASSETS.foods       食物（液體是整片漸層，再依容器裁切成杯中液面或灑出的一攤）
+ *   renderSituation(食物, 容器) 回傳一個 DOM 節點；situationNote() 給卡片下方的小字
+ */
+const LIQUID_STOPS = {
+  shake: [[0, '#fff3f8'], [0.3, '#ffc2da'], [0.6, '#ff86b5'], [1, '#e0457f']],   // 粉紅漸層
+  tea: [[0, '#d9a066'], [0.25, '#a8662e'], [1, '#7a4318']]                        // 棕色茶湯
+};
+const liquidDefs = f => `<defs><linearGradient id="lg-${f}" x1="0" y1="0" x2="0" y2="1">`
+  + LIQUID_STOPS[f].map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('') + '</linearGradient></defs>';
+const LIQUID = f => liquidDefs(f) + `<rect x="0" y="0" width="100" height="100" fill="url(#lg-${f})"/>`;
+const PUDDLE = f => liquidDefs(f) + `<ellipse cx="50" cy="92" rx="46" ry="40" fill="url(#lg-${f})"/>`;
+const DROPS = f => ['<circle cx="14" cy="82" r="3.5"/>', '<circle cx="86" cy="80" r="3"/>', '<circle cx="76" cy="70" r="2.2"/>', '<circle cx="24" cy="71" r="2"/>']
+  .join('').replace(/\/>/g, ` fill="${LIQUID_STOPS[f][2][1]}"/>`);
+
+const SITUATION_ASSETS = {
+  containers: { glass: ICONS.glass, cup: ICONS.cup, bowl: ICONS.bowl, plate: ICONS.plate, box: ICONS.box,
+                bag: ICONS.bag, bottle: ICONS.bottle, slice: ICONS.pizzaSlice },
+  foods: {
+    // 沙拉：幾片綠葉加彩色水果，堆成一小丘
+    salad: '<ellipse cx="32" cy="60" rx="18" ry="11" fill="#5fb04a" transform="rotate(-20 32 60)"/>'
+      + '<ellipse cx="68" cy="60" rx="18" ry="11" fill="#4e9e3a" transform="rotate(20 68 60)"/>'
+      + '<ellipse cx="50" cy="53" rx="21" ry="12" fill="#7cc95a"/>'
+      + '<path d="M27 52 a8 8 0 0 1 15 0z" fill="#ffd34d"/>'
+      + '<circle cx="42" cy="47" r="7" fill="#e84a4a"/><circle cx="61" cy="46" r="6" fill="#ffb03a"/>'
+      + '<circle cx="53" cy="58" r="5" fill="#a24ad8"/><circle cx="67" cy="56" r="4.5" fill="#e84a4a"/>',
+    // 披薩：黃色三角形＋紅色臘腸
+    pizza: '<path d="M16 22 Q50 9 84 22 L50 90Z" fill="#f4c35a"/>'
+      + '<path d="M16 22 Q50 9 84 22 L79 32 Q50 21 21 32Z" fill="#d48b3a"/>'
+      + '<circle cx="43" cy="42" r="6.5" fill="#d6453a"/><circle cx="59" cy="52" r="5.5" fill="#d6453a"/><circle cx="48" cy="66" r="4.5" fill="#d6453a"/>',
+    shake: LIQUID('shake'),   // 粉紅色液體
+    tea: LIQUID('tea')        // 棕色液體
+  }
+};
+const FOOD_KIND = { salad: 'solid', pizza: 'solid', shake: 'liquid', tea: 'liquid' };
+
+// 容器內部（液體倒進去的範圍）、杯身（藏在後面用）、杯口
+const INTERIOR = {
+  glass: 'polygon(29% 30%, 71% 30%, 66.5% 87%, 33.5% 87%)',
+  bowl: 'ellipse(36% 7.5% at 50% 42%)',
+  cup: 'ellipse(20.5% 3.8% at 47% 37%)'
+};
+const BODY = { cup: 'polygon(23% 38%, 71% 38%, 68% 88%, 26% 88%)', bottle: 'polygon(30% 34%, 70% 34%, 70% 88%, 30% 88%)' };
+const MOUTH = { cup: '<ellipse cx="47" cy="37" rx="20.5" ry="3.8" fill="#f3c6d6" opacity=".55"/>' };
+const SHINE = '<path d="M35 34 L38.5 82" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".75"/>';
+const STEAM = '<path d="M40 14 Q36 8 40 1 M52 14 Q48 7 52 -1 M64 14 Q60 8 64 1" stroke="#c4cad3" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
+const CREAM = '<path d="M30 30 Q30 18 42 20 Q46 10 56 14 Q68 12 70 24 Q74 30 66 32 L34 32 Q28 32 30 30Z" fill="#fff"/>'
+  + '<circle cx="54" cy="12" r="5" fill="#e8304f"/><path d="M54 7 Q57 2 61 3" stroke="#5e9e45" stroke-width="2" fill="none"/>';
+
+// 固體的擺放方式（transform 套在食物圖層上）
+const STUFF = {   // 硬塞進窄容器
+  pizza: { glass: 'translate(0,-30%) rotate(-24deg) scale(.66,.6)', cup: 'translate(0,-20%) rotate(160deg) scale(.55)',
+           bottle: 'translate(0,-40%) rotate(-8deg) scale(.36,.46)', bowl: 'translate(0,-18%) rotate(165deg) scale(.6)' },
+  salad: { glass: 'translate(0,-38%) rotate(-14deg) scale(.78,.85)', cup: 'translate(0,-14%) scale(.75,.8)',
+           bottle: 'translate(0,-46%) scale(.4,.5)' }
+};
+const ON = { pizza: 'translate(0,-6%) scale(.62,.34)', salad: 'translate(0,-4%) scale(.82,.55)' };   // 躺在盤子上
+const PEEK = { pizza: 'translate(0,-34%) scale(.6)', salad: 'translate(0,-44%) scale(.78)' };          // 被盒子／袋子蓋住
+const CLIP_TOP = { bowl: 47, cup: 37 };   // 碗、杯：食物畫在前面，只留杯口以上的部分
+
+/**
+ * 依「食物性質 × 容器類型」決定疊法
+ *   液體：玻璃杯／碗 → fill；馬克杯 → 奶昔 hidden、熱茶 fill；瓶子 → hidden；盤子／盒子／袋子／披薩片 → spill
+ *   固體：碗 → 沙拉 nest、披薩 stuffed；玻璃杯／馬克杯／瓶子 → stuffed；盤子 → on；盒子／袋子 → peek
+ */
+function situationMode(food, c) {
+  if (food === 'pizza' && c === 'slice') return 'self';
+  if (FOOD_KIND[food] === 'liquid') {
+    if (c === 'glass' || c === 'bowl') return 'fill';
+    if (c === 'cup') return food === 'shake' ? 'hidden' : 'fill';
+    if (c === 'bottle') return 'hidden';
+    return 'spill';
+  }
+  if (c === 'bowl') return food === 'salad' ? 'nest' : 'stuffed';
+  if (c === 'glass' || c === 'cup' || c === 'bottle') return 'stuffed';
+  if (c === 'plate' || c === 'slice') return 'on';
+  return 'peek';
+}
+
+// 一個圖層（統一 viewBox 0 0 100 100）
+const sl = (content, style = '', cls = '') => `<svg class="sl ${cls}" viewBox="0 0 100 100" style="${style}" aria-hidden="true">${content}</svg>`;
+// 包一層只顯示上方 pct% 的框（食物在前、杯口以下被「容器」擋住的效果）
+const clipTop = (inner, pct) => `<div class="sl" style="clip-path: inset(0 0 ${100 - pct}% 0)">${inner}</div>`;
+// 容器圖：冷飲或固體配馬克杯時拿掉熱氣
+function containerSvg(c, food) {
+  const svg = SITUATION_ASSETS.containers[c];
+  return c === 'cup' && food !== 'tea' ? svg.replace(/<path d="M38 26[^>]*\/>/, '') : svg;
+}
+
+const SITUATION_BUILDERS = {
+  // 倒進去：液體裁成杯中液面；奶昔在玻璃杯加奶油櫻桃；熱茶不在馬克杯就冒熱氣
+  fill: (f, c) => sl(containerSvg(c, f)) + sl(SITUATION_ASSETS.foods[f], `clip-path: ${INTERIOR[c]}`, 'food-layer')
+    + (f === 'shake' && c === 'glass' ? sl(CREAM, '', 'food-layer') : '')
+    + (c === 'glass' ? sl(SHINE) : '')
+    + (f === 'tea' && c !== 'cup' ? sl(STEAM, 'transform: translate(0,6%)', 'steam') : ''),
+  // 看不到漸層：液體放在不透明容器「後面」
+  hidden: (f, c) => sl(SITUATION_ASSETS.foods[f], `clip-path: ${BODY[c]}`) + sl(containerSvg(c, f))
+    + (MOUTH[c] ? sl(MOUTH[c]) : '') + '<div class="sit-badge">?</div>',
+  // 灑出來：容器照畫，液體變成扁平的一攤加水滴（scaleY 0.2）
+  spill: (f, c) => sl(containerSvg(c, f)) + sl(PUDDLE(f), '', 'puddle') + sl(DROPS(f), '', 'drops'),
+  // 硬塞進去：食物旋轉擠壓卡在杯口；碗、杯是食物在前只露杯口以上，玻璃杯、瓶子是食物在後透出來
+  stuffed: (f, c) => {
+    const food = `<div class="sl wob">${sl(SITUATION_ASSETS.foods[f], `transform: ${STUFF[f][c]}`)}</div>`;
+    return CLIP_TOP[c]
+      ? sl(containerSvg(c, f)) + clipTop(food, CLIP_TOP[c])
+      : food + sl(containerSvg(c, f), c === 'glass' ? 'opacity: .62' : '') + (c === 'glass' ? sl(SHINE) : '');
+  },
+  // 沙拉裝在碗裡（正確）
+  nest: (f, c) => sl(containerSvg(c, f)) + clipTop(sl(SITUATION_ASSETS.foods[f], 'transform: translate(0,-6%) scale(.92,.8)', 'food-layer'), CLIP_TOP.bowl),
+  // 躺在盤子上
+  on: (f, c) => sl(containerSvg(c, f)) + sl(SITUATION_ASSETS.foods[f], `transform: ${ON[f]}`, 'slide'),
+  // 被盒子／袋子蓋住，只露出一角
+  peek: (f, c) => sl(SITUATION_ASSETS.foods[f], `transform: ${PEEK[f]}`) + sl(containerSvg(c, f)),
+  // 披薩配 slice（正確）：就是一片披薩
+  self: f => sl(SITUATION_ASSETS.foods[f], '', 'food-layer')
+};
+
+/**
+ * 組合情境圖
+ * @param {string|null} food      salad / shake / pizza / tea；沒有食物（Boss 戰）就只畫容器
+ * @param {string}      container 層架物品名稱
+ * @returns {HTMLDivElement}
+ */
+function renderSituation(food, container) {
+  const el = document.createElement('div');
+  if (!food || !SITUATION_ASSETS.foods[food]) {
+    el.className = 'situation sit-solo';
+    el.innerHTML = sl(ICONS[SHELF_ITEMS[container].icon]);
+    return el;
+  }
+  const mode = situationMode(food, container);
+  el.className = `situation sit-${mode}`;
+  el.dataset.mode = mode;
+  el.innerHTML = SITUATION_BUILDERS[mode](food, container);
+  return el;
+}
+
+// 卡片下方的小字（依疊法描述發生了什麼）
+function situationNote(food, c, ok) {
+  if (ok || !food) return '';
+  const mode = situationMode(food, c);
+  if (mode === 'fill') return food === 'tea' ? (c === 'glass' ? '（熱茶倒進玻璃杯，好燙！）' : '（這是喝湯的碗吧……）') : '（奶昔要用舔的嗎……）';
+  return {
+    hidden: '（完全看不到漂亮的漸層……）', spill: '（全灑出來了……）', stuffed: '（硬塞進去了……）',
+    on: food === 'salad' ? '（沙拉醬流得滿桌都是……）' : '（整盤端上來，不是一片一片的……）',
+    peek: '（被蓋住了，拿不到……）'
+  }[mode] || '';
+}
+
+/*
+ * 廚房層架上的物品：icon 是 ICONS 的名稱（emoji 只留給對話分支圖等文件用）
+ */
+const SHELF_ITEMS = {
+  glass: { icon: 'glass', emoji: '🥛' }, cup: { icon: 'cup', emoji: '☕' }, bowl: { icon: 'bowl', emoji: '🥣' },
+  plate: { icon: 'plate', emoji: '🍽️' }, bag: { icon: 'bag', emoji: '🛍️' }, bottle: { icon: 'bottle', emoji: '🍼' },
+  box: { icon: 'box', emoji: '📦' }, slice: { icon: 'pizzaSlice', emoji: '🍕' },
+  flour: { icon: 'flour', emoji: '🌾' }, salt: { icon: 'salt', emoji: '🧂' }, sugar: { icon: 'sugar', emoji: '🍬' }
+};
+const GRANDMA_MAX_FAVOR = 5;
+
+   // Grandma 好感度（關卡 3、4 選錯容器或單複數就扣 1）
 
 /*
  * 追加提問題庫：忘記加 s 時，動態 unshift() 插到佇列最前面，答對才回到主線原題
@@ -1060,7 +1615,11 @@ const STAGES = [
       { speaker: 'narr', text: '(Red is at home.)', sub: 'Red 在家裡，媽媽正在整理籃子。', scene: 'home', char: 'mom', state: 'normal' },
       { speaker: 'mom', text: 'Grandma is sick, so we need to prepare a yummy snack for her.', sub: '奶奶生病了，所以我們要幫她準備好吃的點心。' },
       { speaker: 'red', text: 'Of course, Mom!', sub: '沒問題，媽媽！' },
-      { speaker: 'mom', text: 'Look in the basket.', sub: '看看籃子裡有什麼。' },
+      { speaker: 'mom', text: 'Bread has no fixed shape, so we use different words for it.', sub: '麵包沒有固定的形狀，所以要用不同的字來說它。' },
+      { speaker: 'mom', icon: 'loaf', iconLabel: 'a loaf 一整條', text: 'A whole baked bread is a <strong>loaf</strong> (一整條).', sub: '烤好的一整條麵包，叫做 a loaf。' },
+      { speaker: 'mom', icon: 'piece', iconLabel: 'a piece 一塊', text: 'If you tear a random part, it\'s a <strong>piece</strong> (一塊).', sub: '隨手撕下來的一塊，叫做 a piece。' },
+      { speaker: 'mom', icon: 'slice', iconLabel: 'a slice 一片', text: 'But for Grandma\'s sandwich, we need a neat, flat <strong>slice</strong> (一片)!', sub: '可是要幫奶奶做三明治，我們需要整齊、扁平的一片！' },
+      { speaker: 'mom', text: 'Now, please pack a s_____e of <strong>bread</strong> for Grandma.', sub: '現在，幫奶奶裝一「片」麵包吧。' },
       { speaker: 'tutor', text: '幫 Red 確認籃子裡的東西！看紅色的字母提示，把量詞完整拼出來。' }
     ],
     done: [
@@ -1077,17 +1636,20 @@ const STAGES = [
     questions: [
       {
         id: 'popcorn', after: ' popcorn do you want?', answer: 'How much',
-        tree: [
-          '大家平常買或吃爆米花都是一大把或一桶，就像 rice（米飯）或 salt（鹽）一樣，不會去數它有幾顆。',
-          '想想看：我們會說 one popcorn、two popcorns 嗎？不能一顆一顆數的東西，問「多少」要用哪一個？'
+        // 答錯的喜劇後果：第 1 次只有 Grandma 吐槽；同一題再錯，吐槽完 AI 家教補一句引導
+        wrongScenes: [
+          [{ speaker: 'npc', state: 'angry', text: 'How many? 妳問我有『幾顆』爆米花？好啊，我要 8,532 顆，妳現在一顆一顆數給我聽！' }],
+          [{ speaker: 'npc', state: 'angry', text: 'How many? 妳問我有『幾顆』爆米花？好啊，我要 8,532 顆，妳現在一顆一顆數給我聽！' },
+           { speaker: 'tutor', text: '大家平常買或吃爆米花都是一大把或一桶，就像 rice（米飯）或 salt（鹽）一樣，不會去數它有幾顆。不能數的東西，問「多少」要用哪一個？' }]
         ],
         okLines: [{ speaker: 'npc', state: 'happy', text: 'Lots of popcorn, please!', sub: '要很多很多爆米花！' }]
       },
       {
         id: 'candy', after: ' bags of candy do you need?', answer: 'How many',
-        tree: [
-          '這次問的是 bags of candy。糖果裝在袋子 (bags) 裡，袋子可以一袋、兩袋地數，bags 字尾還有 s 喔！',
-          '注意 bags 後面有 s！可以一袋、兩袋數的東西，問句該用哪一個？'
+        wrongScenes: [
+          [{ speaker: 'npc', state: 'angry', text: 'How much? 妳把一袋袋糖果當成水了嗎？難道要融化成糖漿倒給我喝嗎？' }],
+          [{ speaker: 'npc', state: 'angry', text: 'How much? 妳把一袋袋糖果當成水了嗎？難道要融化成糖漿倒給我喝嗎？' },
+           { speaker: 'tutor', text: '注意 bags 後面有 s！糖果裝在袋子裡，可以一袋、兩袋地數。可以數的東西，問句該用哪一個？' }]
         ],
         okLines: [
           { speaker: 'npc', state: 'happy', text: 'Three bags of candy, please.', sub: '三袋糖果，謝謝。' },
@@ -1101,7 +1663,8 @@ const STAGES = [
       { speaker: 'npc', state: 'normal', text: 'I\'m wearing a mask because I\'m sick.', sub: '因為我生病了，所以戴口罩。' },
       { speaker: 'npc', state: 'normal', text: 'I\'m still hungry. I want a big meal!', sub: '我還是好餓。我想吃大餐！' },
       { speaker: 'npc', state: 'normal', text: 'Popcorn and candy first!', sub: '先來爆米花和糖果！' },
-      { speaker: 'tutor', text: 'Red 想問奶奶要多少。先判斷：這個東西能不能一個一個數？' }
+      { speaker: 'think', text: '爆米花是一整堆的，<strong>popcorn</strong> 沒有加 s，不能一顆一顆數（不可數）……糖果是裝在袋子裡的，<strong>bags</strong> 有加 s，可以一袋一袋數（可數）！' },
+      { speaker: 'tutor', text: 'Red 想問奶奶要多少。選出正確的問句開頭吧！' }
     ],
     done: [
       { speaker: 'narr', text: '(Red goes to the kitchen.)', sub: 'Red 走進廚房。', scene: 'kitchen' }
@@ -1110,22 +1673,45 @@ const STAGES = [
 
   // ---------- 關卡 3：量詞與複數（文字輸入） ----------
   {
-    title: '關卡 3｜打出正確的容器量詞',
-    type: 'fill',
+    title: '關卡 3｜從層架選容器，幫 Grandma 裝食物',
+    type: 'craft',                    // 點擊合成：先點層架的容器，再選單複數
+    shelf: ['glass', 'cup', 'bowl', 'plate', 'bag', 'bottle'],
     who: 'Red 確認：',
     sentence: 'So, you want two {salad} (碗) of fruit salad and three {shake} (玻璃杯) of milk shake?',
     fields: [
       {
         id: 'salad', correct: 'bowls', hint_tw: '碗', food: 'fruit salad', plural: true, remedial: 'slices',
+        foodEmoji: '🥗',
+        reactions: {
+          right: '對！水果沙拉就是要裝在碗裡！',
+          wrong: {
+            plate: 'A plate?! 沙拉醬都流到桌上了！給我碗 (bowl)！',
+            cup: 'A cup?! 水果沙拉塞在杯子裡要我怎麼吃？給我碗 (bowl)！',
+            glass: 'A glass?! 水果沙拉卡在玻璃杯裡挖不出來啦！給我碗 (bowl)！',
+            bag: 'A bag?! 沙拉都被壓扁了！給我碗 (bowl)！',
+            bottle: 'A bottle?! 水果沙拉怎麼塞進瓶子裡？給我碗 (bowl)！'
+          }
+        },
         synonyms: [],                 // 「碗」沒有真正對得上的課外字（dish、plate 是『盤子』）
         semanticTraps: TRAPS_BOWL
       },
       {
         // 奶昔是冷飲：英文用 glass 裝，cup／mug 通常裝熱飲 → 放進陷阱做語感糾正
         id: 'shake', correct: 'glasses', hint_tw: '玻璃杯', food: 'milk shake', plural: true, remedial: 'dishes',
+        foodEmoji: '🥤',
+        reactions: {
+          right: '這才對嘛，漸層真美！',
+          wrong: {
+            cup: 'A cup?! 完全看不到漂亮的顏色漸層，給我換透明玻璃杯 (glass)！',
+            bowl: 'A bowl?! 奶昔是用喝的，不是用舔的！給我玻璃杯 (glass)！',
+            plate: 'A plate?! 奶昔全流到桌上了！給我玻璃杯 (glass)！',
+            bag: 'A bag?! 奶昔漏得到處都是！給我玻璃杯 (glass)！',
+            bottle: 'A bottle?! 這樣看不到漸層啦！給我透明玻璃杯 (glass)！'
+          }
+        },
         synonyms: [],                 // 不把 cup 當同義詞，因為要在陷阱裡糾正冷熱飲的差別
         semanticTraps: {
-          cups: 'cup 通常用來裝熱飲（如咖啡或熱茶）喔！奶昔是冷飲，請依照提示填入『玻璃杯』的英文。',
+          cups: 'cup 通常用來裝熱飲喔！請換成冷飲用的玻璃杯。',
           cup: 'cup 通常用來裝熱飲喔！而且前面是 three，請填入『玻璃杯』的複數英文。',
           mugs: 'mugs 通常用來裝熱飲（如咖啡或熱茶）喔！奶昔是冷飲，請依照提示填入『玻璃杯』的英文。',
           mug: 'mug 通常用來裝熱飲喔！而且前面是 three，請填入『玻璃杯』的複數英文。',
@@ -1139,7 +1725,8 @@ const STAGES = [
     intro: [
       { speaker: 'npc', state: 'angry', text: 'Give me a little cheese!', sub: '給我一點起司！' },
       { speaker: 'npc', state: 'angry', text: 'Fruit salad! Milk shake! I want more!', sub: '（我還要兩碗水果沙拉和三杯奶昔！）' },
-      { speaker: 'tutor', text: '在空格裡打出正確的量詞，再按「送出」。注意前面的數字喔！' }
+      { speaker: 'think', text: '桌上有一個大 <strong>bowl</strong>，還有裝冷飲的玻璃杯 (<strong>glass</strong>)……奶昔是冷飲，要用 glass 裝！而且 Grandma 要的數量大於一時，單字是不是要加上 <strong>s</strong> 變身？' },
+      { speaker: 'tutor', text: '這次不用打字！點上方層架的容器幫 Grandma 裝食物，選對容器後再決定要不要加 s。' }
     ],
     done: [
       { speaker: 'npc', state: 'happy', text: 'Yummy! Two bowls of fruit salad and three glasses of milk shake!', sub: '好吃！兩碗水果沙拉和三杯冰涼的奶昔！' }
@@ -1149,18 +1736,42 @@ const STAGES = [
   // ---------- 關卡 4：魔王關（容器混淆與複數） ----------
   {
     title: '關卡 4｜魔王關：容器別搞混！',
-    type: 'fill',
+    type: 'craft',
+    shelf: ['slice', 'box', 'plate', 'glass', 'cup', 'bowl'],
     who: 'Red 確認：',
     sentence: 'Four {pizza} (片) of pizza and two {tea} (杯) of tea?',
     fields: [
       {
         id: 'pizza', correct: 'slices', hint_tw: '片', food: 'pizza', plural: true, remedial: 'bowls',
+        foodEmoji: '🍕',
+        caption: w => w === 'slice' ? 'A slice of pizza' : null,
+        reactions: {
+          right: '對，一片一片的披薩最好拿！',
+          wrong: {
+            box: 'A box?! 我要的是一片一片的 (slice)，不是整盒！',
+            plate: 'A plate?! 盤子是用來裝的，我要的是一片一片的披薩 (slice)！',
+            glass: 'A glass?! 披薩怎麼塞進玻璃杯？我要一片一片的 (slice)！',
+            cup: 'A cup?! 披薩不是飲料啦！我要一片一片的 (slice)！',
+            bowl: 'A bowl?! 披薩不是湯！我要一片一片的 (slice)！'
+          }
+        },
         synonyms: ['piece'],
         semanticTraps: TRAPS_SLICE
       },
       {
         // 茶是熱飲：英文用 cup 裝；glass 通常裝冷飲 → 放進陷阱做語感糾正
         id: 'tea', correct: 'cups', hint_tw: '杯', food: 'tea', plural: true, remedial: 'slices',
+        foodEmoji: '🍵',
+        reactions: {
+          right: '熱茶就是要用 cup 裝，才不會燙手！',
+          wrong: {
+            glass: 'A glass?! 熱茶倒進玻璃杯，燙死我了！給我杯子 (cup)！',
+            bowl: 'A bowl?! 我又不是在喝湯！給我杯子 (cup)！',
+            plate: 'A plate?! 茶全灑出來了！給我杯子 (cup)！',
+            box: 'A box?! 茶要怎麼裝在盒子裡？給我杯子 (cup)！',
+            slice: 'A slice?! 茶又不能切片！給我杯子 (cup)！'
+          }
+        },
         synonyms: ['mug'],            // 馬克杯裝熱茶也說得通 → 課外同義詞，不計錯
         semanticTraps: {
           glasses: 'glass 通常用來裝冷飲（如果汁或奶昔）喔！茶是熱飲，請依照提示填入『杯』的英文。',
@@ -1175,50 +1786,44 @@ const STAGES = [
     intro: [
       { speaker: 'npc', state: 'angry', text: 'I still need more!', sub: '我還要更多！' },
       { speaker: 'npc', state: 'angry', text: 'Pizza! Tea! Pizza and tea!', sub: '（我還要四片披薩跟兩杯熱茶！）' },
-      { speaker: 'tutor', text: '魔王關！披薩和熱茶的量詞不一樣，還要注意複數喔。' }
+      { speaker: 'think', text: '熱茶應該用裝熱飲的杯子 (<strong>cup</strong>) 裝，不能用裝冷飲的玻璃杯 (glass)……披薩切片要用 s 開頭的單字……' },
+      { speaker: 'tutor', text: '魔王關！從層架挑出披薩和熱茶各自要用的量詞，還要注意複數喔。' }
     ],
     done: [
       { speaker: 'npc', state: 'happy', text: 'Four slices of pizza and two cups of tea. Yummy!', sub: '四片披薩和兩杯熱茶。好吃！' }
     ]
   },
 
-  // ---------- 關卡 5：Boss 戰（階段式攻擊：一招一個單字） ----------
+  // ---------- 關卡 5：Boss 戰（沉浸式盲打：看中文、直接用鍵盤打出英文） ----------
   {
     title: '關卡 5｜Boss 戰！',
     type: 'battle',
     who: 'Red 大喊：',
     /*
-     * 每一招一個回合：答對後 Red 喊出整句（shout）並播放該招的動作特效（fx），
-     * 特效命中時大野狼扣一格血，接著播大野狼的反應（react），再進下一招
+     * 隨機攻擊題庫：開戰時抽 3 題不重複
+     *   en 是要盲打的英文（空白自動跳過）；throw 是丟出去的圖（SVG），兩袋糖果就丟兩個
      */
-    fields: [
-      {
-        id: 'flour', correct: 'flour', hint_tw: '麵粉', uncountable: true, fx: 'flour',
-        synonyms: [], semanticTraps: traps('麵粉', { sugar: '糖', salt: '鹽', bread: '麵包', cheese: '起司', milk: '牛奶', rice: '米飯' }),
-        line: 'I throw a bag of {flour} (麵粉) at you!',
-        shout: 'I throw a bag of flour at you!',
-        react: { speaker: 'npc', state: 'hurt', text: 'Ah! Flour!', sub: '大野狼被麵粉嗆得什麼都看不見！' }
-      },
-      {
-        id: 'salt', correct: 'salt', hint_tw: '鹽', uncountable: true, fx: 'salt',
-        synonyms: [], semanticTraps: traps('鹽', { sugar: '糖', pepper: '胡椒', flour: '麵粉', candy: '糖果' }),
-        line: 'And a little {salt} (鹽) in your eyes!',
-        shout: 'And a little salt in your eyes!',
-        react: { speaker: 'npc', state: 'hurt', text: 'No! Not the salt!', sub: '鹽巴撒進眼睛，大野狼痛得哇哇大叫！' }
-      },
-      {
-        id: 'plate', correct: 'plate', hint_tw: '盤子', cue: 'this', fx: 'plate',
-        synonyms: ['dish'], semanticTraps: traps('盤子', { bowl: '碗', cup: '杯子', glass: '玻璃杯', bottle: '瓶', pan: '平底鍋', pot: '鍋子', can: '罐' }),
-        line: 'Take this heavy {plate} (盤子)!',
-        shout: 'Take this heavy plate!',
-        react: { speaker: 'npc', state: 'hurt', text: 'No, no, no!', sub: '盤子正中大野狼，牠被打飛出去！' }
-      }
+    attackPool: [
+      { zh: '一整條麵包', en: 'a loaf of bread', throw: ['loaf'], color: '#d48a43',
+        wolfReaction: 'A loaf of bread?! 妳拿整條剛烤好的麵包砸我的臉？！' },
+      { zh: '一片披薩', en: 'a slice of pizza', throw: ['pizza'], color: '#f4c35a',
+        wolfReaction: 'A slice of pizza?! 剛出爐的起司燙到我的眼睛了啦！' },
+      { zh: '一杯熱茶', en: 'a cup of hot tea', throw: ['tea'], color: '#a8662e',
+        wolfReaction: 'A cup of hot tea?! 妳居然直接把熱茶往我身上潑！' },
+      { zh: '一杯奶昔', en: 'a glass of milk shake', throw: ['shake'], color: '#ff86b5',
+        wolfReaction: 'A glass of milk shake?! 我的毛全部黏在一起了，這很難洗欸！' },
+      { zh: '一碗水果沙拉', en: 'a bowl of fruit salad', throw: ['salad'], color: '#7cc95a',
+        wolfReaction: 'A bowl of fruit salad?! 這麼大一個碗砸過來是想痛死我嗎！' },
+      { zh: '兩袋糖果', en: 'two bags of candy', throw: ['candy', 'candy'], color: '#ff7aa8',
+        wolfReaction: 'Two bags of candy?! 裡面糖果那麼多，砸起來跟石頭一樣痛啊！' }
     ],
     intro: [
       { speaker: 'red', text: 'Grandma, why do you need so much food?', sub: '奶奶，你為什麼需要這麼多食物？' },
       { speaker: 'npc', char: 'grandma', state: 'wolf', scene: 'battle', quake: true, music: 'start', hp: 3, text: 'I don\'t want those things. I want a kid like you!', sub: 'Grandma 撕下口罩：我不想吃那些東西，我要吃掉妳這個小孩！' },
       { speaker: 'red', text: 'Ah, you\'re not my grandma!', sub: '啊，你不是我奶奶！' },
-      { speaker: 'tutor', text: 'Boss 戰！Red 要用手邊的物資反擊。一次一招：打出單字、按下 Attack，把大野狼的血打光！' }
+      { speaker: 'red', text: 'The kitchen is full of food... <strong>bread</strong>, <strong>pizza</strong>, <strong>tea</strong>, <strong>milk shake</strong>, <strong>fruit salad</strong> and <strong>candy</strong>!', sub: 'Red 環顧四周：廚房裡到處都是食物……麵包、披薩、茶、奶昔、水果沙拉和糖果！' },
+      { speaker: 'narr', quake: true, text: '（大野狼張牙舞爪地撲了過來！）' },
+      { speaker: 'tutor', text: '看畫面上的中文，直接用鍵盤打出英文砸他！不用按空白鍵，打錯會被大野狼逼近喔！' }
     ],
     done: [
       { speaker: 'red', text: 'Back off, Big Bad Wolf!', sub: '退後，大野狼！', scene: 'end', music: 'fade', hp: null, state: 'gone' },
@@ -1263,7 +1868,8 @@ function makeLevel(def, main) {
       approach: 0,         // Boss 戰大野狼逼近了幾步（攻擊失敗累加、命中歸零）
       solved: {},          // 已答對的欄位
       values: {},          // 學生上次輸入的內容（答錯回來時保留，讓他修改）
-      wrong: {}            // 上次答錯的欄位（重開面板時標紅）
+      wrong: {},           // 上次答錯的欄位（重開面板時標紅）
+      picked: {}           // 點擊合成：這格已選對的容器（接著選單複數）
     }
   };
 }
@@ -1361,9 +1967,10 @@ function normalize(raw) {
  */
 function judgeChoice(q, choice) {
   if (choice === q.answer) return { ok: true };
-  // popcorn 選了 How many：爆米花不可數
-  // candy 選了 How much：糖果本身不好數，但這裡數的是 bags（袋子），袋子可以數
-  return { ok: false, type: 'choice', state: 'hint', tree: q.tree };
+  // 答錯不再是 AI 家教的制式糾正，而是 Grandma 的喜劇反應（scenes：要播的整段對話）
+  //   popcorn 選了 How many → 「那妳一顆一顆數給我聽！」
+  //   candy 選了 How much → 「妳把糖果當成水，要融化成糖漿嗎？」
+  return { ok: false, type: 'choice', state: 'angry', scenes: q.wrongScenes };
 }
 
 /**
@@ -1405,7 +2012,7 @@ function judgeFill(stage, field, raw) {
     if (input === (field.plural ? pluralize(syn) : syn)) {
       return {
         ok: false, type: 'textbookOnly', state: 'hint',
-        tree: [field.synonymMsg || `你能想到課本外的用法很棒喔！但在本次任務中，『${hint}』請使用課本教的那個單字，再試試看！${clue}`]
+        tree: [field.synonymMsg || `你能想到課本外的用法很棒喔！但本次請使用課本單字再試試看！${clue}`]
       };
     }
   }
@@ -1449,25 +2056,29 @@ function judgeFill(stage, field, raw) {
 }
 
 /**
- * Boss 戰（關卡 5）：判斷單一攻擊欄位
- * 判斷順序與 judgeFill 完全相同，只是台詞換成戰鬥語氣、表情固定為大野狼（不能切回奶奶的圖）
+ * 點擊合成（關卡 3、4）：判斷學生點的容器（只判斷「選哪種容器」，單複數下一步再判斷）
+ *   選對容器 ........................ { ok }
+ *   課外同義字（在 synonyms 裡）...... textbookOnly → 不計錯
+ *   其他容器 ........................ trap → synonym，台詞用 reactions.wrong，沒寫就用 semanticTraps
  */
-function judgeBattle(stage, field, raw) {
-  const res = judgeFill(stage, field, raw);
-  if (res.ok) return res;
-  res.state = 'wolf';
-  const clue = `「${field.hint_tw}」是 ${field.correct[0]} 開頭的單字`;
-  if (res.type === 'empty') {
-    res.tree = [`還有一招沒填！${clue}，快補上！`];
-  } else if (res.type === 'typo') {
-    res.tree = [
-      `攻擊失敗！大野狼逼近了！再檢查一下拼字，${clue}，趕快反擊！`,
-      `大野狼越來越近了！冷靜下來再檢查一下拼字：${field.correct[0]} 開頭、跟「${field.hint_tw}」有關的課本單字，一個字母一個字母拼拼看！`
-    ];
-  } else if (res.type === 'trap') {
-    res.tree = [`攻擊失敗！${res.tree[0]}`];
+function judgeContainer(field, word) {
+  const base = field.plural ? toSingular(field.correct) : field.correct;
+  if (word === base) return { ok: true };
+  if ((field.synonyms || []).includes(word)) {
+    return { ok: false, type: 'textbookOnly', state: 'hint', line: '你能想到課本外的用法很棒喔！但本次請使用課本單字再試試看！' };
   }
-  return res;
+  const custom = field.reactions && field.reactions.wrong && field.reactions.wrong[word];
+  const trap = findTrap(field, word);
+  return {
+    ok: false, type: 'trap', state: 'angry',
+    line: custom || `A ${word}?! ${trap || `這不是我要的！請依照提示選『${field.hint_tw}』。`}`
+  };
+}
+
+// 動畫卡片的說明文字，例如 "Milk shake in a Cup"
+function craftCaption(field, word) {
+  const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
+  return (field.caption && field.caption(word)) || `${cap(field.food)} in a ${cap(word)}`;
 }
 
 /* =========================================================
@@ -1607,6 +2218,48 @@ const fx = {
     return this[name](onHit);
   },
 
+  // 盲打一擊：把題目的食物（SVG）丟過去，命中時噴濺＋-999 CRITICAL!
+  async attack(atk, onHit) {
+    const gen = this.gen;
+    const art = {
+      loaf: () => svgIcon('loaf', 74),
+      pizza: () => svgIcon('pizzaSlice', 70),
+      candy: () => svgIcon('bag', 62),
+      tea: () => renderSituation('tea', 'cup').outerHTML,
+      shake: () => renderSituation('shake', 'glass').outerHTML,
+      salad: () => renderSituation('salad', 'bowl').outerHTML
+    };
+    await Promise.all(atk.throw.map((k, i) => new Promise(r => setTimeout(r, i * 180))
+      .then(() => this.throwItem('fx-icon', art[k](), 520, 540 + i * 180))));
+    if (gen !== this.gen) return;
+    const b = this.anchor('npc');
+    onHit();
+    const flash = this.spawn('fx-flash', b.x, b.y);
+    const bits = [];
+    for (let i = 0; i < 14; i++) {
+      const d = this.spawn('fx-dot', b.x, b.y);
+      d.style.background = atk.color;
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 70 + Math.random() * 90;
+      bits.push(d.animate([
+        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) scale(.4)`, opacity: 0 }
+      ], { duration: 700, easing: 'ease-out' }).finished.then(() => d.remove()));
+    }
+    const dmg = this.spawn('fx-dmg', b.x, b.y - 40, '-999<small>CRITICAL!</small>');
+    await Promise.all([
+      flash.animate([{ transform: 'translate(-50%, -50%) scale(.2)', opacity: 1 }, { transform: 'translate(-50%, -50%) scale(1.7)', opacity: 0 }],
+        { duration: 600, easing: 'ease-out' }).finished.then(() => flash.remove()),
+      dmg.animate([
+        { transform: 'translate(-50%, -50%) scale(.2) rotate(-10deg)', opacity: 0 },
+        { transform: 'translate(-50%, -80%) scale(1.35) rotate(-6deg)', opacity: 1, offset: 0.2 },
+        { transform: 'translate(-50%, -110%) scale(1) rotate(-6deg)', opacity: 1, offset: 0.75 },
+        { transform: 'translate(-50%, -150%) scale(1) rotate(-6deg)', opacity: 0 }
+      ], { duration: 1400, easing: 'ease-out' }).finished.then(() => dmg.remove()),
+      ...bits
+    ]);
+  },
+
   clear() {
     const l = this.layer();
     this.gen++;
@@ -1634,12 +2287,12 @@ const ui = {
 
   speakerName(speaker) {
     if (speaker === 'npc') return this.npcState === 'wolf' || this.npcState === 'hurt' ? 'Big Bad Wolf' : 'Grandma';
-    return { red: 'Red', mom: 'Mom', tutor: 'AI 家教', narr: '旁白' }[speaker];
+    return { red: 'Red', think: 'Red（心想）', mom: 'Mom', tutor: 'AI 家教', narr: '旁白' }[speaker];
   },
 
   // 對白的 speaker 對應到語音角色
   voiceOf(speaker) {
-    return { red: 'red', mom: 'mom', npc: 'grandma', tutor: 'tutor', narr: 'narr' }[speaker];
+    return { red: 'red', think: 'tutor', mom: 'mom', npc: 'grandma', tutor: 'tutor', narr: 'narr' }[speaker];
   },
 
   setScene(name) {
@@ -1659,8 +2312,9 @@ const ui = {
   },
 
   focusSpeaker(speaker) {
-    $('red').classList.toggle('dim', speaker !== 'red');
-    $('npc').classList.toggle('dim', speaker === 'red');
+    const isRed = speaker === 'red' || speaker === 'think';   // 內心戲也是 Red 在想
+    $('red').classList.toggle('dim', !isRed);
+    $('npc').classList.toggle('dim', isRed);
   },
 
   // 畫面劇烈震動（重設 class 讓動畫能重播）
@@ -1685,7 +2339,7 @@ const ui = {
   },
 
   updateMute() {
-    $('mute-btn').textContent = soundOn ? '🔊 音效開' : '🔇 音效關';
+    $('mute-btn').innerHTML = soundOn ? '🔊<span class="btn-long"> 音效開</span>' : '🔇<span class="btn-long"> 音效關</span>';
   },
 
   // 大野狼血條（n = 剩幾格；0 以上顯示，null 隱藏）
@@ -1693,6 +2347,48 @@ const ui = {
     const bar = $('boss-hp');
     bar.classList.toggle('show', n !== null);
     bar.querySelectorAll('.seg').forEach((s, i) => s.classList.toggle('lost', n === null || i >= n));
+  },
+
+  // 顯示廚房層架（items 是 SHELF_ITEMS 的 key；null 隱藏）
+  showShelf(items) {
+    const shelf = $('kitchen-shelf');
+    $('game').classList.toggle('shelf-on', !!items);
+    shelf.classList.toggle('show', !!items);
+    shelf.classList.remove('active');
+    shelf.innerHTML = (items || []).map(k =>
+      `<button class="shelf-item" type="button" data-item="${k}">${svgIcon(SHELF_ITEMS[k].icon, 56)}<span class="word">${k}</span></button>`).join('');
+  },
+  // 層架可不可以點（只有等學生選容器時才可以）
+  setShelfActive(on) {
+    $('kitchen-shelf').classList.toggle('active', on);
+  },
+
+  // Grandma 好感度（null 隱藏）
+  setFavor(n) {
+    const el = $('info-favor');
+    el.hidden = n === null;
+    // n 是 0～100 的好感度，畫成 5 顆愛心（每 20 一顆）
+    const h = Math.round(n / 20);
+    if (n !== null) el.innerHTML = `<span class="fav-long">Grandma 好感度</span><span class="fav-short">好感</span> ${'♥'.repeat(h)}${'♡'.repeat(GRANDMA_MAX_FAVOR - h)}`;
+  },
+
+  /**
+   * 合成動畫：畫面中央彈出卡片，約 1.6 秒後收起
+   * @param {'right'|'wrong'} kind 對或錯
+   */
+  craftFx(kind, item, food, caption, sub) {
+    const box = $('craft-fx');
+    // 動態組合「食物 × 容器」的情境圖（Boss 戰沒有食物，只畫道具）
+    box.querySelector('.craft-icons').replaceChildren(renderSituation(food, item));
+    box.querySelector('.craft-caption').textContent = caption;
+    box.querySelector('.craft-sub').textContent = sub || '';
+    box.className = kind;
+    void box.offsetWidth;          // 重新觸發動畫
+    box.classList.add('show');
+    return new Promise(resolve => setTimeout(() => {
+      box.classList.remove('show');
+      setTimeout(resolve, 250);
+    }, 1600));
   },
 
   // 小紅帽愛心條（n = 剩幾顆；null 隱藏）
@@ -1710,7 +2406,7 @@ const ui = {
     const box = document.querySelector('#panel .timer');
     if (!box || t == null) return;
     box.querySelector('.timer-num').textContent = `${Math.ceil(t)} 秒`;
-    box.querySelector('.timer-fill').style.width = `${(t / BATTLE_TIME_LIMIT) * 100}%`;
+    box.querySelector('.timer-fill').style.width = `${(t / game.battle.limit) * 100}%`;
     box.classList.toggle('warn', t <= 10);
   },
 
@@ -1736,6 +2432,9 @@ const ui = {
     if ('hp' in line) this.setHp(line.hp);
     if (line.music === 'start') music.play();
     if (line.music === 'fade') music.fadeOut();
+    // 教學圖解：台詞帶 icon（ICONS 的名稱）就在對話框右側顯示，沒有就收起來
+    $('dialogue').classList.toggle('has-icon', !!line.icon);
+    $('dialogue-icon').innerHTML = line.icon ? svgIcon(line.icon, 112) + `<div class="di-label">${line.iconLabel || ''}</div>` : '';
     const sp = $('speaker');
     sp.textContent = this.speakerName(line.speaker);
     sp.className = line.speaker === 'red' ? '' : line.speaker;
@@ -1743,7 +2442,7 @@ const ui = {
 
     this.currentLine = line;
     this.segs = toSegments(line.text);
-    this.total = line.text.length;
+    this.total = this.segs.reduce((n, sg) => n + sg.t.length, 0);   // 不含 <strong> 標籤本身
     $('text').innerHTML = '';
     $('sub').innerHTML = '';
     $('next-arrow').classList.remove('show');
@@ -1792,7 +2491,12 @@ const ui = {
     $('text').innerHTML = '';
     $('sub').innerHTML = '';
     $('next-arrow').classList.remove('show');
+    $('dialogue').classList.remove('has-icon');
     fx.clear();
+    $('game').classList.remove('danger', 'hell');
+    this.showShelf(null);
+    this.setFavor(null);
+    $('craft-fx').className = '';
     this.setHp(null);
     this.setHearts(null);
     stopBattleTimer();
@@ -1857,32 +2561,107 @@ const ui = {
     if (target) setTimeout(() => $('in-' + target.id).focus(), 50);
   },
 
-  // Boss 戰：一次只出一招。已經打出的招式顯示成綠色，目前這招一個輸入框
+  /*
+   * 點擊合成面板（關卡 3、4）：一次處理一格
+   *   還沒選容器 → 空格標示「從層架選」，層架可以點
+   *   已選對容器 → 空格顯示容器，下方出現單複數按鈕（例：glass / glasss / glasses）
+   */
+  renderCraft(stage) {
+    const cur = stage.fields.find(f => !L().solved[f.id]);
+    const picked = cur && L().picked[cur.id];
+    let html = stage.sentence;
+    stage.fields.forEach(f => {
+      let blank;
+      if (L().solved[f.id]) blank = `<span class="pick-blank done">${f.correct}</span>`;
+      else if (f === cur) blank = `<span class="pick-blank active">${picked || '👆 從層架選'}</span>`;
+      else blank = `<span class="pick-blank">&nbsp;</span>`;
+      html = html.replace(`{${f.id}}`, blank);
+    });
+    html = html.replace(/\(([^()]+)\)/g, '<span class="zh-tag">($1)</span>');
+    let action;
+    if (picked) {
+      // 單複數的選項：單數、多加 s、正確的複數（去重複後打亂順序）
+      const forms = [...new Set([picked, picked + 's', pluralize(picked)])].sort(() => Math.random() - 0.5);
+      action = `<div class="pick-note">容器選對了！看看前面的數量，要不要加 s？</div>
+        <div class="form-row">${forms.map(w => `<button class="btn alt form-btn" type="button" data-form="${w}">${w}</button>`).join('')}</div>`;
+    } else {
+      action = `<div class="pick-note">點上方層架的容器，幫 Grandma 裝「${cur.food}」</div>`;
+    }
+    this.showPanel(`
+      <div class="panel-title">${stage.title}</div>
+      <div class="who">${stage.who}</div>
+      <div class="q-line">${html}</div>
+      ${action}`);
+    this.setShelfActive(!picked);
+  },
+
+  /*
+   * Boss 戰盲打面板：大字中文提示＋每個字母一條底線（不顯示英文、沒有輸入框）
+   *   打字由 document 的 keydown 全局監聽（觸控裝置另外顯示一排字母按鈕）
+   */
   renderBattle(stage) {
-    const total = stage.fields.length;
-    const cur = stage.fields[L().phase];
-    const hp = total - L().phase;
-    const hearts = stage.fields.map((_, i) => `<span class="mini-seg ${i < hp ? '' : 'lost'}"></span>`).join('');
-    const doneLines = stage.fields.slice(0, L().phase)
-      .map(f => `<div class="q-line done">✔ ${escapeHtml(f.shout)}</div>`).join('');
-    const val = (L().values[cur.id] || '').replace(/"/g, '&quot;');
-    const html = cur.line
-      .replace(`{${cur.id}}`, `<input class="word-input ${L().wrong[cur.id] ? 'bad' : ''}" id="in-${cur.id}" value="${val}"
-        autocomplete="off" autocapitalize="off" spellcheck="false">`)
-      .replace(/\(([^()]+)\)/g, '<span class="zh-tag">($1)</span>');
+    const bt = game.battle;
+    const total = bt.attacks.length;
+    const atk = bt.attacks[bt.idx];
+    const hp = total - bt.idx;
+    const wolfHp = bt.attacks.map((_, i) => `<span class="mini-seg ${i < hp ? '' : 'lost'}"></span>`).join('');
+    const touch = window.matchMedia('(pointer: coarse)').matches;
+    const keyboard = touch
+      ? `<div class="vkb">${['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].map(row =>
+          `<div class="vkb-row">${[...row].map(k => `<button class="vk" type="button" data-key="${k}">${k}</button>`).join('')}</div>`).join('')}</div>`
+      : '';
     this.showPanel(`
       <div class="battle-head">
-        <span class="panel-title">${stage.title}第 ${L().phase + 1} 招 / ${total}</span>
-        <span class="mini-red">小紅帽 ${'♥'.repeat(game.battle.hearts)}${'♡'.repeat(RED_MAX_HEARTS - game.battle.hearts)}</span>
-        <span class="mini-hp">大野狼 HP ${hearts}</span>
+        <span class="panel-title">${stage.title}第 ${bt.idx + 1} 擊 / ${total}</span>
+        <span class="diff-tag diff-${bt.diff}">${DIFFICULTY[bt.diff].name}</span>
+        <span class="mini-red">小紅帽 ${'♥'.repeat(bt.hearts)}${'♡'.repeat(RED_MAX_HEARTS - bt.hearts)}</span>
+        <span class="mini-hp">大野狼 HP ${wolfHp}</span>
       </div>
       <div class="timer"><span>⏱</span><div class="timer-bar"><div class="timer-fill"></div></div><span class="timer-num"></span></div>
-      ${doneLines}
-      <div class="who">${stage.who}</div>
-      <div class="q-line active">${html}</div>
-      <div class="choice-row"><button class="btn attack" type="button" id="submit-btn">Attack (攻擊)！</button></div>`, true);
+      <div class="atk-zh">【${atk.zh}】</div>
+      <div id="type-line"></div>
+      <div class="pick-note" id="type-note">${touch ? '點下方字母' : '直接用鍵盤打字'}，不用按空白鍵${DIFFICULTY[bt.diff].penalty ? `｜地獄難度：打錯一個字母扣 ${DIFFICULTY[bt.diff].penalty} 秒！` : ''}</div>
+      ${keyboard}`, true);
+    this.updateTyping();
     this.updateTimer();
-    setTimeout(() => $('in-' + cur.id).focus(), 50);
+  },
+
+  // 依目前進度重畫底線：打出的字母金色高光（.typed-char），沒打的維持底線（.untyped-char）
+  updateTyping(hitIndex = -1) {
+    const bt = game.battle;
+    const en = bt.attacks[bt.idx].en;
+    $('type-line').innerHTML = [...en].map((ch, i) => {
+      if (ch === ' ') return '<span class="tc gap"></span>';
+      const done = i < bt.pos;
+      const cls = done ? 'typed-char' : 'untyped-char';
+      return `<span class="tc ${cls}${i === bt.pos ? ' cursor' : ''}${i === hitIndex ? ' pop' : ''}">${done ? ch : '&nbsp;'}</span>`;
+    }).join('');
+  },
+
+  // 打錯：整串字閃紅光
+  flashTypingError() {
+    const el = $('type-line');
+    el.classList.remove('miss');
+    void el.offsetWidth;
+    el.classList.add('miss');
+  },
+
+  // 更新面板上的小紅帽愛心
+  updateBattleHud() {
+    const el = document.querySelector('#panel .mini-red');
+    const bt = game.battle;
+    if (el) el.textContent = `小紅帽 ${'♥'.repeat(bt.hearts)}${'♡'.repeat(RED_MAX_HEARTS - bt.hearts)}`;
+  },
+
+  // 地獄難度扣秒：倒數旁跳出「-2s」
+  timerPenalty(sec) {
+    const box = document.querySelector('#panel .timer');
+    if (!box) return;
+    const tag = document.createElement('span');
+    tag.className = 'timer-pen';
+    tag.textContent = `-${sec}s`;
+    box.appendChild(tag);
+    setTimeout(() => tag.remove(), 900);
   },
 
   /*
@@ -1985,9 +2764,34 @@ function startLevel() {
     return;
   }
   lv.introDone = true;
-  // 進 Boss 戰：重設時限與愛心
-  if (lv.def.type === 'battle') game.battle = { timeLeft: BATTLE_TIME_LIMIT, hearts: RED_MAX_HEARTS, timer: null };
-  ui.play(lv.def.intro, () => {
+  // 有層架設定的關卡（3～5）才顯示層架；關卡 3 開始時顯示 Grandma 好感度
+  ui.showShelf(lv.def.shelf || null);
+  ui.setFavor(lv.def.type === 'craft' ? grandmaAffection : null);
+  let intro = lv.def.intro;
+  // 進 Boss 戰：依好感度決定難度，從題庫隨機抽 3 題
+  if (lv.def.type === 'battle') {
+    const diff = pickDifficulty(grandmaAffection);
+    const d = DIFFICULTY[diff];
+    const pool = lv.def.attackPool.slice().sort(() => Math.random() - 0.5);
+    game.battle = {
+      diff, limit: d.time, timeLeft: d.time, hearts: RED_MAX_HEARTS, timer: null,
+      attacks: pool.slice(0, 3),   // 本場的 3 道攻擊指令
+      idx: 0,                      // 第幾題
+      pos: 0,                      // 這題打到英文字串的第幾個字元
+      wrongKeys: 0,                // 本場打錯的字母總數（每 WRONG_KEYS_PER_HEART 個扣 1 顆愛心）
+      missThis: false,             // 這題打錯過沒（同一題只計一次拼字錯誤）
+      creep: 0                     // 大野狼已經逼近幾 px
+    };
+    // 困難以上：紅色警戒濾鏡；地獄再加強
+    $('game').classList.toggle('danger', diff !== 'normal');
+    $('game').classList.toggle('hell', diff === 'hell');
+    const warn = { normal: '好感度還不錯，是普通難度！', hard: '剛才惹 Grandma 生氣了……困難難度！大野狼逼近得更快！', hell: 'Grandma 氣炸了！地獄難度！打錯一個字母就扣 2 秒！' }[diff];
+    intro = intro.slice(0, -1).concat([
+      { speaker: 'tutor', text: `${warn}（倒數 ${d.time} 秒）` },
+      intro[intro.length - 1]
+    ]);
+  }
+  ui.play(intro, () => {
     if (lv.def.type === 'battle') ui.setHearts(game.battle.hearts);
     openPanel();
   });
@@ -2003,9 +2807,13 @@ function startBattleTimer() {
   let last = performance.now();
   bt.timer = setInterval(() => {
     const now = performance.now();
-    bt.timeLeft = Math.max(0, bt.timeLeft - (now - last) / 1000);
+    const dt = (now - last) / 1000;
+    bt.timeLeft = Math.max(0, bt.timeLeft - dt);
     last = now;
     ui.updateTimer();
+    // 大野狼依難度一步步逼近（命中時被打退歸零）
+    bt.creep = Math.min(170, bt.creep + dt * DIFFICULTY[bt.diff].creep);
+    $('npc').style.translate = `${-bt.creep}px 0`;
     if (bt.timeLeft <= 0) {
       closePanel();
       failBattle('time');
@@ -2031,6 +2839,7 @@ function failBattle(reason) {
   ui.queue = [];
   ui.onQueueDone = null;
   music.fadeOut(1500);
+  ui.showShelf(null);
   ui.setHp(null);
   ui.setHearts(null);
   ui.setNpc(undefined, 'wolf');
@@ -2068,12 +2877,14 @@ function openPanel() {
   const stage = D();
   if (stage.type === 'choice') ui.renderChoice(stage);
   else if (stage.type === 'battle') { ui.renderBattle(stage); startBattleTimer(); }
+  else if (stage.type === 'craft') ui.renderCraft(stage);
   else ui.renderFill(stage);
 }
 
 // 作答送出：面板立刻隱藏，回到劇情狀態
 function closePanel() {
   stopBattleTimer();
+  ui.setShelfActive(false);
   ui.hidePanel();
   setState(STATES.STORY);
 }
@@ -2097,8 +2908,14 @@ function giveHint(res, key) {
     ui.quake();
     ui.approach(++L().approach);
   }
+  // 有整段劇情（第二關的喜劇反應）就播劇情，否則由 AI 家教講提示樹的對應那一句
+  if (res.scenes) {
+    const scene = res.scenes[Math.min(tries, res.scenes.length) - 1].map(l => ({ ...l }));
+    scene[scene.length - 1].sub = '（點一下繼續作答）';
+    ui.play(scene, openPanel);
+    return;
+  }
   const line = res.tree[Math.min(tries, res.tree.length) - 1];
-
   ui.play([{ speaker: 'tutor', text: line, sub: '（點一下繼續作答）' }], openPanel);
 }
 
@@ -2128,6 +2945,9 @@ function clearLevel() {
 
 function showResult() {
   setState(STATES.RESULT);
+  $('game').classList.remove('danger', 'hell');
+  ui.showShelf(null);
+  ui.setFavor(null);
   speech.stop();
   ui.updateInfo();
   ui.renderResult();
@@ -2148,53 +2968,146 @@ function handleChoice(choice) {
 }
 
 /*
- * Boss 戰：一次判斷一招
- *   答對 → 面板隱藏，Red 喊出整句，同時播放該招動作；命中瞬間大野狼扣血、被擊退，
- *          動作播完接大野狼的反應，點一下進入下一招（最後一招打完進結局）
- *   答錯 → 走一般的錯題引導（畫面震動、大野狼逼近）
+ * 點擊合成 craftingSystem（關卡 3、4）
+ *   第 1 步 handleShelfPick：學生點層架的容器
+ *      → judgeContainer() 判斷容器
+ *      → 播放合成動畫卡片（對：綠光＋叮咚；錯：食物被遮住、紅框抖動）
+ *      → 對：Grandma 滿意，面板出現單複數按鈕
+ *        錯：Grandma 奧客吐槽、扣好感度、計入錯誤，回到選容器
+ *   第 2 步 handleFormPick：學生選單複數（例：glass / glasss / glasses）
+ *      → 交給原本的 judgeFill()，單複數錯就走原本的提示與追加題
  */
-function handleBattleSubmit() {
+function handleShelfPick(word) {
+  if (game.state !== STATES.ANSWER) return;
   const stage = D();
-  const field = stage.fields[L().phase];
-  L().values[field.id] = $('in-' + field.id).value;
-  closePanel();
+  if (stage.type !== 'craft') return;
+  const field = stage.fields.find(f => !L().solved[f.id]);
+  if (!field || L().picked[field.id]) return;        // 容器已選好，正在等單複數
 
-  const res = judgeBattle(stage, field, L().values[field.id]);
-  if (!res.ok) {
-    L().wrong[field.id] = true;
-    giveHint(res, `battle-${field.id}-${res.type}`);
+  closePanel();
+  ui.play([{ speaker: 'think', text: `用 ${word} 裝裝看……` }]);
+  const res = judgeContainer(field, word);
+  if (res.ok) sfx.correct();
+  const round = game;
+  ui.craftFx(res.ok ? 'right' : 'wrong', word, field.id, craftCaption(field, word),
+    situationNote(field.id, word, res.ok)).then(() => {
+    if (game !== round) return;
+    if (res.ok) {
+      L().picked[field.id] = word;
+      ui.play([{ speaker: 'npc', state: 'happy', text: field.reactions.right }], openPanel);
+      return;
+    }
+    if (res.type !== 'textbookOnly') changeFavor(-1);
+    giveHint({ ...res, scenes: [[{ speaker: res.type === 'textbookOnly' ? 'tutor' : 'npc', state: res.state, text: res.line }]] },
+      `${stage.title}-${field.id}-shelf-${word}`);
+  });
+}
+
+function handleFormPick(form) {
+  if (game.state !== STATES.ANSWER) return;
+  const stage = D();
+  const field = stage.fields.find(f => !L().solved[f.id]);
+  closePanel();
+  const res = judgeFill(stage, field, form);
+  if (res.ok) {
+    L().solved[field.id] = true;
+    if (stage.fields.every(f => L().solved[f.id])) { clearLevel(); return; }
+    sfx.correct();
+    ui.play([{ speaker: 'think', text: `${form}，數量也對了！下一個……` }], openPanel);
     return;
   }
+  notePending(field, res);          // 漏 s → 通過這關後出追加題
+  changeFavor(-1);
+  giveHint(res, `${stage.title}-${field.id}-${res.type}`);
+}
 
-  sfx.correct();
-  L().wrong[field.id] = false;
-  L().solved[field.id] = true;
-  L().phase++;
-  L().approach = 0;
-  const hpLeft = stage.fields.length - L().phase;
-  const last = L().phase >= stage.fields.length;
+// Grandma 好感度增減（關卡 3、4）：delta 是愛心數，一顆 = 20 點
+function changeFavor(delta) {
+  if (D().type !== 'craft') return;
+  grandmaAffection = Math.max(0, Math.min(100, grandmaAffection + delta * 20));
+  ui.setFavor(grandmaAffection);
+}
 
-  // Red 喊出這一招（播語音），動作同時開始；喊完前不讓玩家跳過，等動作播完才接反應
-  ui.play([{ speaker: 'red', text: field.shout, sub: '' }]);
-  // 記住這一回合的 game 物件：動畫中途按了回到主頁，game 會被換掉，舊動畫的回呼就不再動畫面
+/*
+ * Boss 戰盲打：每按一個字母呼叫一次
+ *   打對 → 底線翻成金色字母、微震、揮擊聲；遇到空白自動跳過；整串打完 → finishAttack()
+ *   打錯 → 「喀」聲、整串閃紅；同一題第一次錯計入拼字錯誤；
+ *          地獄難度扣秒；每打錯 WRONG_KEYS_PER_HEART 個扣 1 顆愛心，扣光再扣就失敗
+ */
+function battleKey(k) {
+  if (game.state !== STATES.ANSWER || D().type !== 'battle') return;
+  const bt = game.battle;
+  const en = bt.attacks[bt.idx].en;
+  if (k === en[bt.pos]) {
+    const hit = bt.pos;
+    bt.pos++;
+    while (en[bt.pos] === ' ') bt.pos++;     // 自動跳過空白
+    sfx.swish();
+    ui.updateTyping(hit);
+    if (bt.pos >= en.length) finishAttack();
+    return;
+  }
+  sfx.thud();
+  ui.flashTypingError();
+  bt.wrongKeys++;
+  bt.creep = Math.min(170, bt.creep + 12);   // 打錯：大野狼趁機往前一步
+  if (!bt.missThis) { bt.missThis = true; countError('typo'); }
+  const pen = DIFFICULTY[bt.diff].penalty;
+  if (pen) { bt.timeLeft = Math.max(0, bt.timeLeft - pen); ui.timerPenalty(pen); ui.updateTimer(); }
+  if (bt.wrongKeys % WRONG_KEYS_PER_HEART === 0) {
+    if (bt.hearts === 0) { closePanel(); failBattle('hearts'); return; }
+    bt.hearts--;
+    ui.setHearts(bt.hearts);
+    ui.updateBattleHud();
+    ui.quake();
+  }
+}
+
+/*
+ * 完成一擊：強烈震動 → 丟出食物 → 命中時 -999 CRITICAL!、大野狼扣血被打退
+ *          → 大野狼吐槽（wolfReaction）→ 1.5 秒後自動換下一題；3 題都打完進結局
+ */
+function finishAttack() {
+  const stage = D();
+  const bt = game.battle;
+  const atk = bt.attacks[bt.idx];
+  closePanel();                    // 面板收起、倒數暫停
+  sfx.critical();
+  ui.quake();
+  ui.typeLine({ speaker: 'red', text: `Take this! ${atk.en.charAt(0).toUpperCase() + atk.en.slice(1)}!`, sub: '' });
+  const hpLeft = bt.attacks.length - bt.idx - 1;
+  const last = hpLeft === 0;
   const round = game;
-  const action = fx.play(field.fx, () => {
+  fx.attack(atk, () => {
     if (game !== round) return;
-    ui.setNpc(undefined, 'hurt');   // 先換表情（會重設 class），再加受擊動畫
+    bt.creep = 0;
+    ui.setNpc(undefined, 'hurt');
     ui.hitNpc();
     ui.setHp(hpLeft);
-  });
-  // 至少等 2.2 秒，讓 Red 喊的那句語音唸完
-  Promise.all([action, new Promise(r => setTimeout(r, 2200))]).then(() => {
+  }).then(() => {
     if (game !== round) return;
-    if (last) ui.setHearts(null);
-    ui.play([field.react], last ? () => ui.play(stage.done, () => { game.queue.shift(); showResult(); }) : openPanel);
+    ui.typeLine({ speaker: 'npc', state: 'hurt', text: atk.wolfReaction });
+    // 等吐槽打字完，再停 1.5 秒自動往下
+    setTimeout(() => {
+      if (game !== round) return;
+      if (last) {
+        ui.setHearts(null);
+        $('game').classList.remove('danger', 'hell');
+        ui.play(stage.done, () => { game.queue.shift(); showResult(); });
+        return;
+      }
+      bt.idx++;
+      bt.pos = 0;
+      bt.missThis = false;
+      ui.setNpc(undefined, 'wolf');
+      openPanel();
+    }, atk.wolfReaction.length * 32 + 1500);
   });
 }
 
 function handleFillSubmit() {
   const stage = D();
-  if (stage.type === 'battle') { handleBattleSubmit(); return; }
+  if (stage.type !== 'fill') return;     // 關卡 3～5 改成點層架，不走打字送出
   // 送出前先記下輸入內容，答錯回來時保留讓他修改
   stage.fields.forEach(f => {
     if (!L().solved[f.id]) L().values[f.id] = $('in-' + f.id).value;
@@ -2222,6 +3135,7 @@ function resetToTitle() {
   music.stop();
   ui.stopAll();
   errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
+  grandmaAffection = 100;
   game = freshGame();
   $('game').classList.remove('ending', 'quake');
   $('result-screen').classList.remove('show');
@@ -2267,6 +3181,16 @@ $('panel').addEventListener('click', e => {
   const btn = e.target.closest('[data-choice]');
   if (btn) handleChoice(btn.dataset.choice);
   if (e.target.id === 'submit-btn') handleFillSubmit();
+  const formBtn = e.target.closest('[data-form]');
+  if (formBtn) handleFormPick(formBtn.dataset.form);
+  const vk = e.target.closest('[data-key]');          // 觸控裝置的字母按鈕
+  if (vk) battleKey(vk.dataset.key);
+});
+
+// 點廚房層架上的物品 → 點擊合成（關卡 3、4）或 Boss 戰出招（關卡 5）
+$('kitchen-shelf').addEventListener('click', e => {
+  const item = e.target.closest('[data-item]');
+  if (item && $('kitchen-shelf').classList.contains('active')) handleShelfPick(item.dataset.item);
 });
 
 $('result-screen').addEventListener('click', e => {
@@ -2276,6 +3200,18 @@ $('result-screen').addEventListener('click', e => {
 
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT';
+  // Boss 戰盲打：全局捕捉字母鍵（不需要任何輸入框）
+  if (game.state === STATES.ANSWER && D().type === 'battle') {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.isComposing || e.key === 'Process') {      // 中文輸入法開著，按鍵抓不到字母
+      const note = $('type-note');
+      if (note) note.textContent = '⚠ 請先切換成英文輸入法（按 Shift 或 Ctrl＋空白鍵）';
+      return;
+    }
+    if (/^[a-zA-Z]$/.test(e.key)) { e.preventDefault(); battleKey(e.key.toLowerCase()); }
+    else if (e.key === ' ') e.preventDefault();      // 不用按空白，也別讓頁面捲動
+    return;
+  }
   if (inInput && e.key === 'Enter' && game.state === STATES.ANSWER) {
     handleFillSubmit();
     return;
