@@ -755,9 +755,20 @@
   .badge.legend { background: linear-gradient(135deg, #f7d774, #e9a93a); }
   .badge.agent  { background: #f3d36b; }
   .badge.novice { background: #e6c3a0; }
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0 14px; }
-  .stats div { background: #f3eef5; border-radius: 8px; padding: 8px 4px; font-size: 13px; }
+  .weak { font-size: 14px; font-weight: 700; color: var(--red); margin-bottom: 4px; }
+  .stats-title { font-size: 15px; margin-top: 8px; color: #555; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0 14px; }
+  .stats .stat-row { position: relative; background: #f3eef5; border-radius: 8px; padding: 8px 4px; font-size: 13px; }
   .stats b { display: block; font-size: 19px; color: var(--forest); }
+  /* 0 錯的類別：閃爍的 PERFECT 標籤 */
+  .stats .perfect {
+    display: inline-block; margin-top: 2px; font-size: 12px; font-weight: 800; color: #c98a00;
+    animation: perfect-blink 0.9s ease-in-out infinite alternate;
+  }
+  @keyframes perfect-blink {
+    from { opacity: 0.35; transform: scale(0.92); text-shadow: none; }
+    to { opacity: 1; transform: scale(1.08); text-shadow: 0 0 8px #ffd34d; }
+  }
   .review {
     text-align: left;
     background: #eef6f2;
@@ -964,18 +975,33 @@ const BATTLE_MUSIC_VOLUME = 0.35;   // 0～1，太大聲會蓋過角色語音
 // 音效總開關（右上角按鈕切換，語音與音樂一起開關）
 let soundOn = true;
 
-// 錯誤數據追蹤：每按一次送出／選項，答錯就依錯誤類型 +1
-//   plural      忘記加 s（含 a 後面多加 s、glass 的 es）
-//   uncountable 可數／不可數判斷錯（How much / How many）
-//   spelling    拼字錯誤、亂碼、留白
-//   synonym     用錯字義（踩到語意陷阱：意思跟中文提示對不上，例如『片』填 loaf、『鹽』填 sugar）
-let errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
+// 錯題紀錄（去重）：key 是題目代號，value 是這題最後一次犯的錯誤類別
+//   同一題重複答錯只會覆蓋，不會重複計分；追加題是額外練習，不記錄
+//   題目代號：關卡 1 '1-bread'、關卡 2 '2-popcorn'、關卡 3、4 '3-salad-container'（選容器）／'3-salad-plural'（選單複數）、
+//             Boss 戰 '5-attack1'～'5-attack3'（以招式順序當代號，死亡重抽題目也不會超過 3 題）
+//   類別：單複數（忘記加 s、多加 s、glass 的 es）、可數與不可數（How much / How many）、
+//         用錯量詞（容器選錯、意思跟中文提示對不上）、拼字錯誤（拼錯、亂碼、留白、Boss 戰打錯字母）
+let errorRecords = {};
+
+// 各類別的總題數（分母）：算「有機會犯這類錯的題目」有幾題，一題可能同時算進好幾類
+//   單複數       6 = 關卡 1 填空 2（a 後面多加 s）＋ 關卡 3、4 選單複數 4
+//   可數與不可數 2 = 關卡 2 的 2 題
+//   用錯量詞     6 = 關卡 1 填空 2 ＋ 關卡 3、4 選容器 4
+//   拼字錯誤     5 = 關卡 1 填空 2 ＋ Boss 戰 3 招
+const TOTAL_QUESTIONS = {
+  '單複數': 6,
+  '可數與不可數': 2,
+  '用錯量詞': 6,
+  '拼字錯誤': 5
+};
 
 // 小紅帽生命值（0～RED_MAX_HP 顆心）：關卡 1～4 與追加題每答錯一次扣 1；扣到 0 就算死亡
 //   課外但正確的單字（textbookOnly）不算答錯、不扣；Boss 戰只看倒數，不扣生命值
 const RED_MAX_HP = 5;
 let redHp = RED_MAX_HP;
-const errorTotal = () => Object.values(errorStats).reduce((a, b) => a + b, 0);
+// 去重後的總錯題數、某一類的錯題數
+const errorTotal = () => Object.keys(errorRecords).length;
+const errorCount = cat => Object.values(errorRecords).filter(c => c === cat).length;
 
 /* =========================================================
  * 一、語音模組（Web Speech API：window.speechSynthesis）
@@ -1732,19 +1758,17 @@ const STAGES = [
     questions: [
       {
         id: 'popcorn', after: ' popcorn do you want?', answer: 'How much',
-        // 答錯的喜劇後果：第 1 次只有 Grandma 吐槽；同一題再錯，吐槽完 AI 家教補一句引導
+        // 答錯：溫和的奶奶用謎語提示（英文＋中文翻譯），接著 AI 家教補一句引導
         wrongScenes: [
-          [{ speaker: 'npc', state: 'angry', text: 'How many? 妳問我有『幾顆』爆米花？好啊，我要 8,532 顆，妳現在一顆一顆數給我聽！' }],
-          [{ speaker: 'npc', state: 'angry', text: 'How many? 妳問我有『幾顆』爆米花？好啊，我要 8,532 顆，妳現在一顆一顆數給我聽！' },
-           { speaker: 'tutor', text: '大家平常買或吃爆米花都是一大把或一桶，就像 rice（米飯）或 salt（鹽）一樣，不會去數它有幾顆。不能數的東西，問「多少」要用哪一個？' }]
+          [{ speaker: 'npc', state: 'hint', text: 'Oh, sweetie, my eyes are too bad to count them one by one. Just grab a big handful for me, okay?', sub: '哎呀，小紅帽，奶奶眼睛不好，沒辦法一顆一顆數啦。直接抓一大把給奶奶好不好？' },
+           { speaker: 'tutor', text: '爆米花通常是一大把抓，不會去數「有幾顆」喔！想想看，不能數的東西，問「多少」該用哪一個字？' }]
         ],
         okLines: [{ speaker: 'npc', state: 'happy', text: 'Lots of popcorn, please!', sub: '要很多很多爆米花！' }]
       },
       {
         id: 'candy', after: ' bags of candy do you need?', answer: 'How many',
         wrongScenes: [
-          [{ speaker: 'npc', state: 'angry', text: 'How much? 妳把一袋袋糖果當成水了嗎？難道要融化成糖漿倒給我喝嗎？' }],
-          [{ speaker: 'npc', state: 'angry', text: 'How much? 妳把一袋袋糖果當成水了嗎？難道要融化成糖漿倒給我喝嗎？' },
+          [{ speaker: 'npc', state: 'hint', text: 'Oh, honey, candy doesn\'t pour like milk. Look at those little bags sitting in a neat row!', sub: '哎呀，乖孩子，糖果又不能像牛奶一樣倒出來。妳看那些小袋子，一袋一袋排得整整齊齊的！' },
            { speaker: 'tutor', text: '注意 bags 後面有 s！糖果裝在袋子裡，可以一袋、兩袋地數。可以數的東西，問句該用哪一個？' }]
         ],
         okLines: [
@@ -1780,12 +1804,13 @@ const STAGES = [
         foodEmoji: '🥗',
         reactions: {
           right: '對！水果沙拉就是要裝在碗裡！',
+          // 選錯容器：謎語式提示 [英文台詞, 中文翻譯]，描述形狀、材質或功能，不直接說答案
           wrong: {
-            plate: 'A plate?! 沙拉醬都流到桌上了！給我碗 (bowl)！',
-            cup: 'A cup?! 水果沙拉塞在杯子裡要我怎麼吃？給我碗 (bowl)！',
-            glass: 'A glass?! 水果沙拉卡在玻璃杯裡挖不出來啦！給我碗 (bowl)！',
-            bag: 'A bag?! 沙拉都被壓扁了！給我碗 (bowl)！',
-            bottle: 'A bottle?! 水果沙拉怎麼塞進瓶子裡？給我碗 (bowl)！'
+            glass: ['Oh dear, my spoon won\'t fit in here. Could you find something wider and deeper for me?', '哎呀，我的湯匙伸不進去呀。能不能幫奶奶找個又寬又深的東西來裝？'],
+            plate: ['It looks lovely, but the sauce might spill over the flat edges! I need something deeper so I can mix it.', '看起來好精緻，但醬汁快從平平的邊緣流出來了！奶奶需要深一點的東西才好攪拌呀。'],
+            cup: ['Oh, honey, this little thing is for my warm tea. Salad needs something wider and deeper, doesn\'t it?', '哎呀，這個小東西是奶奶喝熱茶用的。沙拉需要更寬、更深的東西，對不對？'],
+            bag: ['Oh dear, the fruit is getting squashed in here! I\'d like something round and deep that I can eat from with a spoon.', '哎呀，水果都被壓扁了！奶奶想要一個圓圓、深深，可以用湯匙舀著吃的東西。'],
+            bottle: ['Sweetie, the strawberries can\'t get through this tiny neck! Find me something with a big round opening.', '乖孩子，草莓擠不過這麼細的瓶口啦！幫奶奶找一個開口又大又圓的東西。']
           }
         },
         synonyms: [],                 // 「碗」沒有真正對得上的課外字（dish、plate 是『盤子』）
@@ -1798,11 +1823,11 @@ const STAGES = [
         reactions: {
           right: '這才對嘛，漸層真美！',
           wrong: {
-            cup: 'A cup?! 完全看不到漂亮的顏色漸層，給我換透明玻璃杯 (glass)！',
-            bowl: 'A bowl?! 奶昔是用喝的，不是用舔的！給我玻璃杯 (glass)！',
-            plate: 'A plate?! 奶昔全流到桌上了！給我玻璃杯 (glass)！',
-            bag: 'A bag?! 奶昔漏得到處都是！給我玻璃杯 (glass)！',
-            bottle: 'A bottle?! 這樣看不到漸層啦！給我透明玻璃杯 (glass)！'
+            cup: ['It\'s a pity I can\'t see the pretty pink gradient through this. Do you have something tall and clear?', '用這個裝好可惜，奶奶都看不到漂亮的粉紅漸層了。妳有高高、透明的那種杯子嗎？'],
+            bowl: ['Oh my, am I supposed to lap it up like a kitty? I\'d love something tall that I can sip from.', '哎呀，奶奶要像小貓一樣舔著喝嗎？我想要一個高高的、可以小口喝的東西。'],
+            plate: ['Oh dear, it\'s running everywhere on this flat thing! A milk shake needs something tall to stand in.', '哎呀，在這平平的東西上流得到處都是！奶昔需要一個高高的東西才裝得住呀。'],
+            bag: ['Oh no, it\'s leaking all over my lap! I need something hard and clear, sweetie.', '哎呀，漏得奶奶滿腿都是！乖孩子，奶奶需要一個硬硬的、透明的東西。'],
+            bottle: ['It\'s cute, but I can\'t see the pretty pink layers, and there\'s no room for whipped cream. Something tall and clear with a wide top, please?', '很可愛，可是看不到粉紅色的漸層，也放不了鮮奶油。給奶奶一個高高、透明、杯口寬一點的好嗎？']
           }
         },
         synonyms: [],                 // 不把 cup 當同義詞，因為要在陷阱裡糾正冷熱飲的差別
@@ -1844,11 +1869,11 @@ const STAGES = [
         reactions: {
           right: '對，一片一片的披薩最好拿！',
           wrong: {
-            box: 'A box?! 我要的是一片一片的 (slice)，不是整盒！',
-            plate: 'A plate?! 盤子是用來裝的，我要的是一片一片的披薩 (slice)！',
-            glass: 'A glass?! 披薩怎麼塞進玻璃杯？我要一片一片的 (slice)！',
-            cup: 'A cup?! 披薩不是飲料啦！我要一片一片的 (slice)！',
-            bowl: 'A bowl?! 披薩不是湯！我要一片一片的 (slice)！'
+            box: ['A whole box is too much for my small stomach! I just need one flat piece cut into a triangle.', '一整盒對奶奶小小的胃來說太多了！我只需要切成三角形的一扁塊就好。'],
+            plate: ['Oh my, a whole pizza on a plate? That\'s far too much for me! Just one thin triangle I can hold in my hand, please.', '哎呀，整個披薩放在盤子上？奶奶吃不了那麼多！只要一塊可以拿在手上的薄薄三角形就好。'],
+            glass: ['Oh dear, the pizza is all squished in this glass! I\'d like it flat, cut into a little triangle.', '哎呀，披薩在玻璃杯裡都擠爛了！奶奶想要平平的、切成小三角形的那種。'],
+            cup: ['Hehe, sweetie, pizza isn\'t something I drink! I want one flat triangle I can bite.', '呵呵，乖孩子，披薩不是用喝的啦！奶奶要一塊可以咬的扁扁三角形。'],
+            bowl: ['Oh my, pizza isn\'t soup, dear! Cut me one thin, flat triangle instead.', '哎呀，披薩不是湯呀！幫奶奶切一塊薄薄扁扁的三角形就好。']
           }
         },
         synonyms: ['piece'],
@@ -1861,11 +1886,11 @@ const STAGES = [
         reactions: {
           right: '熱茶就是要用 cup 裝，才不會燙手！',
           wrong: {
-            glass: 'A glass?! 熱茶倒進玻璃杯，燙死我了！給我杯子 (cup)！',
-            bowl: 'A bowl?! 我又不是在喝湯！給我杯子 (cup)！',
-            plate: 'A plate?! 茶全灑出來了！給我杯子 (cup)！',
-            box: 'A box?! 茶要怎麼裝在盒子裡？給我杯子 (cup)！',
-            slice: 'A slice?! 茶又不能切片！給我杯子 (cup)！'
+            glass: ['Oh my, this is too hot to hold! I need something with a little handle so I don\'t burn my hands.', '哎喲，這拿著好燙手呀！奶奶需要一個旁邊有小把手的東西，才不會燙到。'],
+            bowl: ['Oh dear, am I drinking soup? It\'s so wide that the tea gets cold fast. Something small with a handle, please.', '哎呀，奶奶是在喝湯嗎？這麼寬，茶一下就涼了。給我一個小小的、有把手的東西好嗎？'],
+            plate: ['Oh my, the hot tea is running off this flat thing! I need something deep with a little handle.', '哎喲，熱茶從這平平的東西上流下來了！奶奶需要一個深一點、有小把手的東西。'],
+            box: ['Hehe, sweetie, tea can\'t stay in a box. It will leak out! Something small and round with a handle, please.', '呵呵，乖孩子，茶裝在盒子裡會漏光的！給奶奶一個小小圓圓、有把手的東西吧。'],
+            slice: ['Oh dear, I can\'t cut tea into pieces! I need something with a handle to hold the hot tea.', '哎呀，茶可不能切成一片一片的！奶奶需要一個有把手、能裝熱茶的東西。']
           }
         },
         synonyms: ['mug'],            // 馬克杯裝熱茶也說得通 → 課外同義詞，不計錯
@@ -1914,8 +1939,9 @@ const STAGES = [
         wolfReaction: 'Two bags of candy?! 裡面糖果那麼多，砸起來跟石頭一樣痛啊！' }
     ],
     intro: [
-      { speaker: 'red', text: 'Grandma, why do you need so much food?', sub: '奶奶，你為什麼需要這麼多食物？' },
-      { speaker: 'npc', char: 'grandma', state: 'wolf', scene: 'battle', quake: true, music: 'start', hp: 3, text: 'I don\'t want those things. I want a kid like you!', sub: 'Grandma 撕下口罩：我不想吃那些東西，我要吃掉妳這個小孩！' },
+      { speaker: 'red', text: 'Grandma, why do you need so much food?', sub: '奶奶，妳為什麼需要這麼多食物？' },
+      // 語氣突變：只有英文、不加中文，保留壓迫感
+      { speaker: 'npc', char: 'grandma', state: 'wolf', scene: 'battle', quake: true, music: 'start', hp: 3, text: 'Because after eating all this... I\'ll have the energy to eat YOU!' },
       { speaker: 'red', text: 'Ah, you\'re not my grandma!', sub: '啊，你不是我奶奶！' },
       { speaker: 'red', text: 'The kitchen is full of food... <strong>bread</strong>, <strong>pizza</strong>, <strong>tea</strong>, <strong>milk shake</strong>, <strong>fruit salad</strong> and <strong>candy</strong>!', sub: 'Red 環顧四周：廚房裡到處都是食物……麵包、披薩、茶、奶昔、水果沙拉和糖果！' },
       { speaker: 'narr', quake: true, text: '（大野狼張牙舞爪地撲了過來！）' },
@@ -1997,20 +2023,26 @@ function setState(next) {
   return true;
 }
 
-// 錯誤類型（判斷函式回傳的 type）→ errorStats 的四大類
+// 錯誤類型（判斷函式回傳的 type）→ 錯題紀錄的四大類
 const ERROR_CATEGORY = {
-  choice: 'uncountable',
-  plural: 'plural', esRule: 'plural', extraS: 'plural',
-  synonym: 'synonym', swapped: 'synonym', otherUnit: 'synonym', order: 'synonym',
-  trap: 'synonym',        // 語意陷阱：用了意思不符合中文提示的字
-  typo: 'spelling', empty: 'spelling',
-  textbookOnly: null      // 課外但正確的單字：只提醒，不計入 errorStats
+  choice: '可數與不可數',
+  plural: '單複數', esRule: '單複數', extraS: '單複數',
+  synonym: '用錯量詞', swapped: '用錯量詞', otherUnit: '用錯量詞', order: '用錯量詞',
+  trap: '用錯量詞',       // 語意陷阱：用了意思不符合中文提示的字
+  typo: '拼字錯誤', empty: '拼字錯誤',
+  textbookOnly: null      // 課外但正確的單字：只提醒，不記錄
 };
 
-// 答錯一次：依類型累計 errorStats
-function countError(type) {
-  if (!ERROR_CATEGORY[type]) return;
-  errorStats[ERROR_CATEGORY[type]]++;
+// 題目代號：主線關卡編號＋題目名稱（例：'3-salad-plural'）；追加題回傳 null（不記錄）
+function questionId(name) {
+  const n = STAGES.indexOf(D()) + 1;
+  return n ? `${n}-${name}` : null;
+}
+
+// 答錯一次：用題目代號當 key 記下錯誤類別（同一題重複錯只覆蓋）
+function recordError(qid, type) {
+  if (!qid || !ERROR_CATEGORY[type]) return;
+  errorRecords[qid] = ERROR_CATEGORY[type];
   ui.updateInfo();
 }
 
@@ -2065,10 +2097,10 @@ function normalize(raw) {
  */
 function judgeChoice(q, choice) {
   if (choice === q.answer) return { ok: true };
-  // 答錯不再是 AI 家教的制式糾正，而是 Grandma 的喜劇反應（scenes：要播的整段對話）
-  //   popcorn 選了 How many → 「那妳一顆一顆數給我聽！」
-  //   candy 選了 How much → 「妳把糖果當成水，要融化成糖漿嗎？」
-  return { ok: false, type: 'choice', state: 'angry', scenes: q.wrongScenes };
+  // 答錯：溫和的 Grandma 用謎語提示，再由 AI 家教引導（scenes：要播的整段對話）
+  //   popcorn 選了 How many → 「奶奶眼睛不好數不了，抓一大把就好」
+  //   candy 選了 How much → 「糖果不能像牛奶一樣倒，小袋子一袋一袋排好」
+  return { ok: false, type: 'choice', state: 'hint', scenes: q.wrongScenes };
 }
 
 /**
@@ -2165,12 +2197,11 @@ function judgeContainer(field, word) {
   if ((field.synonyms || []).includes(word)) {
     return { ok: false, type: 'textbookOnly', state: 'hint', line: '你能想到課本外的用法很棒喔！但本次請使用課本單字再試試看！' };
   }
+  // reactions.wrong 是 [英文台詞, 中文翻譯]；沒寫到的容器才用語意陷阱的中文提示
   const custom = field.reactions && field.reactions.wrong && field.reactions.wrong[word];
+  if (custom) return { ok: false, type: 'trap', state: 'hint', line: custom[0], sub: custom[1] };
   const trap = findTrap(field, word);
-  return {
-    ok: false, type: 'trap', state: 'angry',
-    line: custom || `A ${word}?! ${trap || `這不是我要的！請依照提示選『${field.hint_tw}』。`}`
-  };
+  return { ok: false, type: 'trap', state: 'hint', line: trap || `這不是奶奶要的呢，再看看提示『${field.hint_tw}』好嗎？` };
 }
 
 // 動畫卡片的說明文字，例如 "Milk shake in a Cup"
@@ -2434,7 +2465,7 @@ const ui = {
       label = game.queue[0].main ? `關卡 ${n} / ${STAGES.length}` : '追加題';
     }
     $('info-stage').textContent = label;
-    $('info-err').textContent = `答錯 ${errorTotal()} 次`;
+    $('info-err').textContent = `錯題 ${errorTotal()} 題`;
   },
 
   updateMute() {
@@ -2797,31 +2828,39 @@ const ui = {
 
   /*
    * 結算畫面
-   *   成就等級（依死亡次數 deathCount）：0 → 傳說級；1～3 → 優秀特務；4 以上 → 見習生＋多練拼寫的提醒
+   *   全部依 errorRecords（去重後的錯題）判定：
+   *   評價稱號：去重總錯題數 0 → 傳說級外送員；1～3 → 優秀特務；4 以上 → 見習生；稱號下方註明弱點類別
    *   在死亡畫面按「放棄，看結算」→ 挑戰失敗
-   *   精準推播：看哪一類錯最多（平手依 plural → uncountable → spelling → synonym 的順序）
-   *     plural      → 均一：名詞複數與容器量詞規則
-   *     uncountable → 均一：可數與不可數名詞判斷
-   *     spelling    → 單字拼寫大挑戰 ＋ 解鎖「大野狼單字打字機」
-   *     synonym     → 錯在容器選錯，同樣推「名詞複數與容器量詞規則」
-   *     全對        → 直接解鎖新挑戰當獎勵
+   *   戰鬥數據面板：每一類顯示「錯題數 / TOTAL_QUESTIONS 總題數」，0 錯加閃爍的 ✨ PERFECT!
+   *   精準推播：看哪一類錯題最多（平手依 單複數 → 可數與不可數 → 拼字錯誤 → 用錯量詞 的順序）
+   *     單複數       → 均一：名詞複數與容器量詞規則
+   *     可數與不可數 → 均一：可數與不可數名詞判斷
+   *     拼字錯誤     → 單字拼寫大挑戰 ＋ 解鎖「大野狼單字打字機」
+   *     用錯量詞     → 錯在容器選錯，同樣推「名詞複數與容器量詞規則」
+   *     全對         → 直接解鎖新挑戰當獎勵
+   *   死亡 4 次以上另外提醒多練拼寫
    */
   renderResult() {
     $('game').classList.add('ending');
     const total = errorTotal();
     const failed = game.failed;
+    const ORDER = ['單複數', '可數與不可數', '拼字錯誤', '用錯量詞'];
+    const counts = Object.fromEntries(ORDER.map(k => [k, errorCount(k)]));
+    const max = Math.max(...ORDER.map(k => counts[k]));
+    // 失敗但一題都沒錯（純粹時間到）→ 算打字速度不夠，走拼字練習那條
+    const topCat = total === 0 ? (failed ? '拼字錯誤' : null) : ORDER.find(k => counts[k] === max);
+    const top = { '單複數': 'plural', '可數與不可數': 'uncountable', '拼字錯誤': 'spelling', '用錯量詞': 'synonym' }[topCat] || null;
+
     let badge;
     if (failed) badge = { cls: 'novice', text: '💀 挑戰失敗', en: 'Mission Failed' };
-    else if (deathCount === 0) badge = { cls: 'legend', text: '🏆 傳說級外送員', en: 'Legendary Courier' };
-    else if (deathCount <= 3) badge = { cls: 'agent', text: '🥇 優秀特務', en: 'Excellent Agent' };
+    else if (total === 0) badge = { cls: 'legend', text: '🏆 傳說級外送員', en: 'Legendary Courier' };
+    else if (total <= 3) badge = { cls: 'agent', text: '🥇 優秀特務', en: 'Excellent Agent' };
     else badge = { cls: 'novice', text: '🥉 見習生', en: 'Novice Learner' };
+    const weak = total > 0 ? `<div class="weak">弱點：${topCat}（${counts[topCat]} 題）</div>` : '';
 
-    const LABEL = { plural: '忘記加 s', uncountable: '可數／不可數', spelling: '拼字錯誤', synonym: '用錯字義' };
-    const ORDER = ['plural', 'uncountable', 'spelling', 'synonym'];
-    const stats = ORDER.map(k => `<div>${LABEL[k]}<b>${errorStats[k]} 次</b></div>`).join('');
-    const max = Math.max(...ORDER.map(k => errorStats[k]));
-    // 失敗但一題都沒錯（純粹時間到）→ 算打字速度不夠，走拼字練習那條
-    const top = total === 0 ? (failed ? 'spelling' : null) : ORDER.find(k => errorStats[k] === max);
+    // 戰鬥數據面板：錯題數 / 總題數，0 錯的類別閃 PERFECT
+    const stats = ORDER.map(k => `<div class="stat-row"><span>${k}</span><b>${counts[k]} / ${TOTAL_QUESTIONS[k]}</b>`
+      + `${counts[k] === 0 ? '<span class="perfect">✨ PERFECT!</span>' : ''}</div>`).join('');
 
     // 影片：YouTube 嵌入＋均一原網址的備用按鈕（直接雙擊開檔時 YouTube 可能拒播，按鈕一定能開）
     const video = (url, title) => url
@@ -2836,7 +2875,7 @@ const ui = {
     let branch;
     if (top === 'plural' || top === 'synonym') {
       branch = `
-        <div class="advice">${top === 'plural' ? '你最常忘記幫量詞加 s，' : '你最常填了意思跟中文提示對不上的字，'}來看看量詞的規則吧！</div>
+        <div class="advice">${top === 'plural' ? '你最常忘記幫量詞加 s，' : '你最常選錯容器、用錯量詞，'}來看看量詞的規則吧！</div>
         <h3 class="rec-title">為你推薦｜均一平台：名詞複數與容器量詞規則</h3>
         ${video(JUNYI_VIDEO_PLURAL_URL, '均一平台：名詞複數與容器量詞規則')}
         <button class="btn" type="button" id="again-btn">再次挑戰</button>`;
@@ -2867,8 +2906,10 @@ const ui = {
     $('result-screen').innerHTML = `
       <div class="result-card">
         <h2>${failed ? '挑戰失敗……' : '任務完成！'}</h2>
-        <div>${failed ? `放棄挑戰了……死亡 ${deathCount} 次、答錯 ${total} 次，看完推薦再挑戰一次吧` : `獲得成就（死亡 ${deathCount} 次・答錯 ${total} 次）`}</div>
+        <div>${failed ? `放棄挑戰了……死亡 ${deathCount} 次、錯題 ${total} 題，看完推薦再挑戰一次吧` : `獲得成就（錯題 ${total} 題・死亡 ${deathCount} 次）`}</div>
         <div class="badge ${badge.cls}">${badge.text}<small>${badge.en}</small></div>
+        ${weak}
+        <h3 class="stats-title">📊 戰鬥數據（錯題數 / 總題數）</h3>
         <div class="stats">${stats}</div>
         <div class="review">
           <b>今天的重點</b><br>
@@ -2966,7 +3007,7 @@ function stopBattleTimer() {
 /*
  * 死亡：deathCount +1，播失敗演出，跳出 YOU DIED（再次挑戰／放棄看結算）
  *   time  ：Boss 戰某一招倒數歸零 → 大野狼撲過來
- *   hp    ：生命值歸零（關卡 3、4 由 Grandma 把小紅帽趕出廚房，其他關卡是小紅帽體力耗盡）
+ *   hp    ：生命值歸零（關卡 3、4 由 Grandma 心疼地叫小紅帽去休息，其他關卡是小紅帽體力耗盡）
  */
 function die(reason) {
   stopBattleTimer();
@@ -2990,7 +3031,7 @@ function die(reason) {
     ui.typeLine({ speaker: 'npc', text: 'I want a kid like you!', sub: '時間到了！大野狼撲了過來！' });
   } else {
     ui.quake();
-    if (D().type === 'craft') ui.typeLine({ speaker: 'npc', state: 'angry', text: '夠了！妳根本不會裝食物！給我滾出廚房！', sub: '小紅帽的生命值歸零了……' });
+    if (D().type === 'craft') ui.typeLine({ speaker: 'npc', state: 'hint', text: 'Oh, sweetie, you look so tired. Go and take a little rest, okay?', sub: '哎呀，小紅帽，妳看起來好累喔，先去休息一下好不好？（生命值歸零了……）' });
     else ui.typeLine({ speaker: 'narr', text: '答錯太多次，小紅帽體力耗盡，倒下了……', sub: '生命值歸零了……' });
   }
 
@@ -3120,13 +3161,13 @@ function closePanel() {
 }
 
 /*
- * 答錯：errorStats 依類型 +1，換 AI 家教講提示，點一下後面板再出現，原題重答
+ * 答錯：用題目代號 qid 記進 errorRecords（去重），換提示，點一下後面板再出現，原題重答
  *   忘記加 s 且這格有追加題 → 先記在這關的 pending，等這關通過後才插進佇列
  *   課外但正確的單字（textbookOnly）→ 只提醒：不計錯、不扣生命值
  *   其他答錯 → 生命值 -1，扣到 0 就死亡
  */
-function giveHint(res, key) {
-  countError(res.type);
+function giveHint(res, key, qid) {
+  recordError(qid, res.type);
   if (ERROR_CATEGORY[res.type] && D().type !== 'battle') {
     redHp = Math.max(0, redHp - 1);
     ui.setLife(redHp);
@@ -3137,7 +3178,8 @@ function giveHint(res, key) {
   // 有整段劇情（第二關的喜劇反應）就播劇情，否則由 AI 家教講提示樹的對應那一句
   if (res.scenes) {
     const scene = res.scenes[Math.min(tries, res.scenes.length) - 1].map(l => ({ ...l }));
-    scene[scene.length - 1].sub = '（點一下繼續作答）';
+    const last = scene[scene.length - 1];
+    last.sub = (last.sub ? last.sub + ' ' : '') + '（點一下繼續作答）';   // 有中文翻譯就接在後面
     ui.play(scene, openPanel);
     return;
   }
@@ -3149,7 +3191,7 @@ function giveHint(res, key) {
 function notePending(field, res) {
   const lv = game.queue[0];
   const usedKey = `${lv.def.title}-${field.id}`;
-  if (ERROR_CATEGORY[res.type] !== 'plural' || !field.remedial || game.remedialUsed[usedKey]) return;
+  if (ERROR_CATEGORY[res.type] !== '單複數' || !field.remedial || game.remedialUsed[usedKey]) return;
   game.remedialUsed[usedKey] = true;
   if (!lv.pending.includes(field.remedial)) lv.pending.push(field.remedial);
 }
@@ -3184,7 +3226,7 @@ function handleChoice(choice) {
   const q = stage.questions[L().choiceIndex];
   closePanel();
   const res = judgeChoice(q, choice);
-  if (!res.ok) { giveHint(res, `choice-${q.id}`); return; }
+  if (!res.ok) { giveHint(res, `choice-${q.id}`, questionId(q.id)); return; }
 
   L().choiceIndex++;
   const last = L().choiceIndex >= stage.questions.length;
@@ -3199,7 +3241,7 @@ function handleChoice(choice) {
  *      → judgeContainer() 判斷容器
  *      → 播放合成動畫卡片（對：綠光＋叮咚；錯：食物被遮住、紅框抖動）
  *      → 對：Grandma 滿意，面板出現單複數按鈕
- *        錯：Grandma 奧客吐槽、扣生命值、計入錯誤，回到選容器
+ *        錯：Grandma 溫和的謎語提示、扣生命值、記錄錯題，回到選容器
  *   第 2 步 handleFormPick：學生選單複數（例：glass / glasss / glasses）
  *      → 交給原本的 judgeFill()，單複數錯就走原本的提示與追加題
  */
@@ -3223,8 +3265,8 @@ function handleShelfPick(word) {
       ui.play([{ speaker: 'npc', state: 'happy', text: field.reactions.right }], openPanel);
       return;
     }
-    giveHint({ ...res, scenes: [[{ speaker: res.type === 'textbookOnly' ? 'tutor' : 'npc', state: res.state, text: res.line }]] },
-      `${stage.title}-${field.id}-shelf-${word}`);
+    giveHint({ ...res, scenes: [[{ speaker: res.type === 'textbookOnly' ? 'tutor' : 'npc', state: res.state, text: res.line, sub: res.sub }]] },
+      `${stage.title}-${field.id}-shelf-${word}`, questionId(`${field.id}-container`));
   });
 }
 
@@ -3242,7 +3284,7 @@ function handleFormPick(form) {
     return;
   }
   notePending(field, res);          // 漏 s → 通過這關後出追加題
-  giveHint(res, `${stage.title}-${field.id}-${res.type}`);
+  giveHint(res, `${stage.title}-${field.id}-${res.type}`, questionId(`${field.id}-plural`));
 }
 
 /*
@@ -3268,7 +3310,7 @@ function battleKey(k) {
   bt.combo = 0;                              // 打錯：連擊歸零
   ui.flashTypingError();
   bt.creep = Math.min(170, bt.creep + 12);   // 打錯：大野狼趁機往前一步
-  if (!bt.missThis) { bt.missThis = true; countError('typo'); }
+  if (!bt.missThis) { bt.missThis = true; recordError(`5-attack${bt.idx + 1}`, 'typo'); }
   const pen = DIFFICULTY[bt.diff].penalty;
   if (pen) {
     bt.timeLeft = Math.max(0, bt.timeLeft - pen);
@@ -3340,7 +3382,7 @@ function handleFillSubmit() {
     if (!first) first = { res, f };   // 但提示一次只講一個問題，先講前面那格
   });
 
-  if (first) { giveHint(first.res, `${stage.title}-${first.f.id}-${first.res.type}`); return; }
+  if (first) { giveHint(first.res, `${stage.title}-${first.f.id}-${first.res.type}`, questionId(first.f.id)); return; }
   clearLevel();
 }
 
@@ -3349,7 +3391,7 @@ function resetToTitle() {
   speech.stop();
   music.stop();
   ui.stopAll();
-  errorStats = { plural: 0, uncountable: 0, spelling: 0, synonym: 0 };
+  errorRecords = {};
   redHp = RED_MAX_HP;
   deathCount = 0;
   game = freshGame();
